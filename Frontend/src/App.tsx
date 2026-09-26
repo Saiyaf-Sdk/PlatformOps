@@ -4,6 +4,8 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Applications from './pages/Applications';
+import { AuditLogs, Deployments, Environments, Incidents, Infrastructure, Monitoring, UsersPage } from './pages/PlatformPages';
+import { ApplicationDetails, DeploymentDetails, InfrastructureRequests } from './pages/DetailPages';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -23,13 +25,16 @@ function AppRoutes() {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="applications" element={<Applications />} />
-        <Route path="environments" element={<Dashboard />} />
-        <Route path="deployments" element={<Dashboard />} />
-        <Route path="infrastructure" element={<Dashboard />} />
-        <Route path="monitoring" element={<Dashboard />} />
-        <Route path="incidents" element={<Dashboard />} />
-        <Route path="audit-logs" element={<Dashboard />} />
-        <Route path="users" element={<Dashboard />} />
+        <Route path="applications/:applicationId" element={<ApplicationDetails />} />
+        <Route path="environments" element={<Environments />} />
+        <Route path="deployments" element={<Deployments />} />
+        <Route path="deployments/:deploymentId" element={<DeploymentDetails />} />
+        <Route path="infrastructure" element={<Infrastructure />} />
+        <Route path="infrastructure-requests" element={<InfrastructureRequests />} />
+        <Route path="monitoring" element={<Monitoring />} />
+        <Route path="incidents" element={<Incidents />} />
+        <Route path="audit-logs" element={<AuditLogs />} />
+        <Route path="users" element={<UsersPage />} />
       </Route>
     </Routes>
   );
