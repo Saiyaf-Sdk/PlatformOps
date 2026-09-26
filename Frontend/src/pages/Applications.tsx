@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Plus, Search, Filter, Server, Circle, GitBranch, User, ExternalLink, Box } from 'lucide-react';
 
@@ -43,6 +44,7 @@ const StatusBadge = ({ status }: { status: App['status'] }) => {
 };
 
 export default function Applications() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [runtimeFilter, setRuntimeFilter] = useState('ALL');
@@ -153,6 +155,7 @@ export default function Applications() {
                 (e.currentTarget as HTMLElement).style.boxShadow = 'none';
                 (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
               }}
+              onClick={() => navigate(`/applications/${app.id}`)}
             >
               {/* Card Header */}
               <div className="flex items-start justify-between mb-3">

@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Box, Server, Rocket, Activity, ShieldAlert, FileText, Users, LogOut, Settings, Terminal } from 'lucide-react';
+import { LayoutDashboard, Box, Server, Rocket, Activity, ShieldAlert, FileText, Users, LogOut, Settings, Terminal, ClipboardList } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface NavItemProps {
@@ -93,6 +93,7 @@ export default function Sidebar() {
         </Section>
         <Section label="Operations">
           <NavItem to="/infrastructure" icon={Server} label="Infrastructure" />
+          <NavItem to="/infrastructure-requests" icon={ClipboardList} label="Infrastructure Requests" />
           <NavItem to="/monitoring" icon={Activity} label="Monitoring" />
           <NavItem to="/incidents" icon={ShieldAlert} label="Incidents" />
         </Section>
