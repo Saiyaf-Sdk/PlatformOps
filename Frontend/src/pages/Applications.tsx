@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Search, Filter, Server, Circle, GitBranch, User, ExternalLink } from 'lucide-react';
+import { Plus, Search, Filter, Server, Circle, GitBranch, User, ExternalLink, Box } from 'lucide-react';
 
 interface App {
   id: number;
