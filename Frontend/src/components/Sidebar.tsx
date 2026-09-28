@@ -1,130 +1,118 @@
 import type { ElementType, ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import {
-  LayoutGrid, Boxes, Layers, Rocket, Server, LineChart, Siren, ScrollText, Users, LogOut, Settings2, X,
-} from 'lucide-react';
+import { motion } from 'framer-motion';
+import { LayoutGrid, Boxes, Layers, Rocket, Server, Activity, Siren, ScrollText, Users, LogOut, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Logo from './Logo';
 
-interface NavItemProps {
-  to: string;
-  icon: ElementType;
-  label: string;
-  badge?: string;
-  onNavigate?: () => void;
-}
+interface NavItemProps { to: string; icon: ElementType; label: string; badge?: string; onNavigate?: () => void }
 
 const NavItem = ({ to, icon: Icon, label, badge, onNavigate }: NavItemProps) => (
-  <NavLink
-    to={to}
-    onClick={onNavigate}
-    className={({ isActive }) =>
-      `group flex items-center gap-3 rounded-full pl-3 pr-2.5 h-10 text-[0.9rem] transition-colors ${
-        isActive ? 'bg-ink text-paper' : 'text-ink-2 hover:bg-card hover:text-ink'
-      }`
-    }
-  >
+  <NavLink to={to} onClick={onNavigate} className="relative block">
     {({ isActive }) => (
-      <>
-        <Icon className="h-[17px] w-[17px] shrink-0" strokeWidth={1.75} />
-        <span className="flex-1">{label}</span>
-        {badge && (
-          <span className={`chip h-5 px-2 text-[0.7rem] ${isActive ? 'bg-signal text-white' : 'bg-bad-soft text-bad'}`}>
-            {badge}
-          </span>
+      <span className={`relative flex h-10 items-center gap-3 rounded-full pl-3.5 pr-2.5 text-[0.9rem] font-semibold transition-colors ${
+        isActive ? 'text-accent-ink' : 'text-fg-2 hover:text-fg'
+      }`}>
+        {isActive && (
+          <motion.span
+            layoutId="nav-pill"
+            className="absolute inset-0 rounded-full bg-accent"
+            transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+          />
         )}
-      </>
+        <Icon className="relative h-[17px] w-[17px] shrink-0" strokeWidth={2.1} />
+        <span className="relative flex-1">{label}</span>
+        {badge && (
+          <span className={`relative flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 font-mono text-[0.68rem] font-bold ${
+            isActive ? 'bg-accent-ink text-accent' : 'bg-bad text-white'
+          }`}>{badge}</span>
+        )}
+      </span>
     )}
   </NavLink>
 );
 
 const Section = ({ label, children }: { label: string; children: ReactNode }) => (
   <div>
-    <p className="px-3 mb-1.5 font-display italic text-[1.05rem] text-ink-3">{label}</p>
+    <p className="tag mb-2 px-3.5">{label}</p>
     <div className="space-y-0.5">{children}</div>
   </div>
 );
 
-interface SidebarProps {
-  open: boolean;
-  onClose: () => void;
-}
-
-export default function Sidebar({ open, onClose }: SidebarProps) {
+export default function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
   return (
     <>
-      {/* mobile scrim */}
       <div
         onClick={onClose}
-        className={`fixed inset-0 z-40 bg-ink/30 backdrop-blur-[2px] transition-opacity lg:hidden ${open ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+        className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity lg:hidden ${open ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
       />
       <aside
-        className={`fixed left-0 top-0 z-50 flex h-screen w-[264px] flex-col border-r border-line bg-paper-2 transition-transform duration-300 lg:translate-x-0 ${
-          open ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed inset-y-3 left-3 z-50 flex w-[252px] flex-col rounded-[26px] border border-line glass backdrop-blur-xl transition-transform duration-500 [transition-timing-function:cubic-bezier(.16,1,.3,1)] lg:translate-x-0 ${
+          open ? 'translate-x-0' : '-translate-x-[110%]'
         }`}
       >
-        <div className="flex items-center justify-between px-5 pt-6 pb-5">
+        <div className="flex items-center justify-between px-5 pb-6 pt-6">
           <Logo />
-          <button onClick={onClose} className="rounded-full p-1.5 text-ink-2 hover:bg-card lg:hidden" aria-label="Close menu">
+          <button onClick={onClose} className="rounded-full p-1.5 text-fg-2 hover:bg-surface-2 lg:hidden" aria-label="Close menu">
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4">
-          <div className="space-y-0.5">
-            <NavItem to="/dashboard" icon={LayoutGrid} label="Overview" onNavigate={onClose} />
-          </div>
+        <nav className="flex-1 space-y-6 overflow-y-auto px-3 pb-4">
+          <div><NavItem to="/dashboard" icon={LayoutGrid} label="overview" onNavigate={onClose} /></div>
           <Section label="Delivery">
-            <NavItem to="/applications" icon={Boxes} label="Applications" onNavigate={onClose} />
-            <NavItem to="/environments" icon={Layers} label="Environments" onNavigate={onClose} />
-            <NavItem to="/deployments" icon={Rocket} label="Deployments" onNavigate={onClose} />
+            <NavItem to="/applications" icon={Boxes} label="applications" onNavigate={onClose} />
+            <NavItem to="/environments" icon={Layers} label="environments" onNavigate={onClose} />
+            <NavItem to="/deployments" icon={Rocket} label="deployments" onNavigate={onClose} />
           </Section>
           <Section label="Operations">
-            <NavItem to="/infrastructure" icon={Server} label="Infrastructure" onNavigate={onClose} />
-            <NavItem to="/monitoring" icon={LineChart} label="Monitoring" onNavigate={onClose} />
-            <NavItem to="/incidents" icon={Siren} label="Incidents" badge="2" onNavigate={onClose} />
+            <NavItem to="/infrastructure" icon={Server} label="infrastructure" onNavigate={onClose} />
+            <NavItem to="/monitoring" icon={Activity} label="monitoring" onNavigate={onClose} />
+            <NavItem to="/incidents" icon={Siren} label="incidents" badge="2" onNavigate={onClose} />
           </Section>
           <Section label="Governance">
-            <NavItem to="/audit-logs" icon={ScrollText} label="Audit log" onNavigate={onClose} />
-            <NavItem to="/users" icon={Users} label="People & access" onNavigate={onClose} />
+            <NavItem to="/audit-logs" icon={ScrollText} label="audit log" onNavigate={onClose} />
+            <NavItem to="/users" icon={Users} label="people & access" onNavigate={onClose} />
           </Section>
         </nav>
 
-        {/* status ticket */}
-        <div className="mx-3 mb-3 rounded-2xl border border-line bg-card p-3.5">
-          <div className="flex items-center gap-2 text-[0.8rem] text-ok">
-            <span className="live-dot" />
-            <span className="font-medium">All lines running</span>
+        <div className="mx-3 mb-3 overflow-hidden rounded-2xl border border-line bg-surface p-3.5">
+          <div className="flex items-center justify-between">
+            <span className="tag !text-ok">All systems</span>
+            <span className="live-dot text-ok" />
           </div>
-          <p className="mt-1 text-[0.78rem] text-ink-3">
-            Uptime <span className="num font-mono text-ink-2">99.98%</span> · ap-south-1
-          </p>
+          <p className="mt-2 font-display text-[1.6rem] font-extrabold leading-none num">99.98<span className="text-fg-3">%</span></p>
+          <div className="mt-2.5 flex h-6 items-end gap-[3px]">
+            {[6, 9, 7, 12, 10, 14, 11, 16, 13, 18, 15, 20, 17, 22].map((h, i) => (
+              <motion.span
+                key={i}
+                initial={{ height: 2 }}
+                animate={{ height: h }}
+                transition={{ delay: 0.4 + i * 0.03, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                className="flex-1 rounded-[2px] bg-ok opacity-70"
+              />
+            ))}
+          </div>
         </div>
 
-        <div className="border-t border-line px-3 py-3">
-          <div className="flex items-center gap-3 px-1.5">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-signal-soft font-display text-lg text-signal">
-              {user?.name?.charAt(0) ?? 'A'}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[0.875rem] font-medium">{user?.name ?? 'Admin'}</p>
-              <p className="truncate text-[0.75rem] text-ink-3">DevOps admin</p>
-            </div>
-            <button className="rounded-full p-2 text-ink-3 hover:bg-card hover:text-ink" aria-label="Settings">
-              <Settings2 className="h-4 w-4" />
-            </button>
-            <button onClick={handleLogout} className="rounded-full p-2 text-ink-3 hover:bg-bad-soft hover:text-bad" aria-label="Sign out">
-              <LogOut className="h-4 w-4" />
-            </button>
+        <div className="flex items-center gap-3 border-t border-line px-4 py-3.5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet to-coral font-display text-base font-extrabold text-white">
+            {user?.name?.charAt(0) ?? 'A'}
           </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[0.875rem] font-bold">{user?.name ?? 'Admin'}</p>
+            <p className="tag truncate !text-[0.6rem]">DevOps admin</p>
+          </div>
+          <button
+            onClick={() => { logout(); navigate('/login'); }}
+            className="rounded-full p-2 text-fg-3 transition-colors hover:bg-surface-2 hover:text-bad"
+            aria-label="Sign out"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
       </aside>
     </>

@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Plus, Search, GitBranch, ArrowUpRight } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Plus, Search, GitBranch, ArrowUpRight, ChevronDown } from 'lucide-react';
+import { SpotPanel } from '../components/fx';
+import { ease, rise } from '../components/motion';
 
 interface App {
   id: number;
@@ -24,13 +26,13 @@ const APPS: App[] = [
 ];
 
 const STATUS = {
-  HEALTHY: { label: 'Healthy', cls: 'text-ok', soft: 'bg-ok-soft text-ok' },
-  WARNING: { label: 'Degraded', cls: 'text-warn', soft: 'bg-warn-soft text-warn' },
-  CRITICAL: { label: 'Failing', cls: 'text-bad', soft: 'bg-bad-soft text-bad' },
+  HEALTHY: { label: 'healthy', cls: 'text-ok' },
+  WARNING: { label: 'degraded', cls: 'text-warn' },
+  CRITICAL: { label: 'FAILING', cls: 'text-bad' },
 } as const;
 
 const RUNTIMES = [
-  { key: 'ALL', label: 'All runtimes' },
+  { key: 'ALL', label: 'all runtimes' },
   { key: 'java', label: 'Java' },
   { key: 'go', label: 'Go' },
   { key: 'python', label: 'Python' },
@@ -39,17 +41,17 @@ const RUNTIMES = [
 
 function monogram(runtime: string) {
   const r = runtime.toLowerCase();
-  if (r.startsWith('java')) return { t: 'Jv', bg: 'var(--signal-soft)', fg: 'var(--signal)' };
-  if (r.startsWith('go')) return { t: 'Go', bg: 'var(--cobalt-soft)', fg: 'var(--cobalt)' };
-  if (r.startsWith('python')) return { t: 'Py', bg: 'var(--warn-soft)', fg: 'var(--warn)' };
-  return { t: 'Js', bg: 'var(--ok-soft)', fg: 'var(--ok)' };
+  if (r.startsWith('java')) return { t: 'JV', c: 'var(--coral)' };
+  if (r.startsWith('go')) return { t: 'GO', c: 'var(--violet)' };
+  if (r.startsWith('python')) return { t: 'PY', c: 'var(--amber)' };
+  return { t: 'JS', c: 'var(--ok)' };
 }
 
-const ease = [0.22, 1, 0.36, 1] as const;
+type Filter = 'ALL' | App['status'];
 
 export default function Applications() {
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<'ALL' | App['status']>('ALL');
+  const [status, setStatus] = useState<Filter>('ALL');
   const [runtime, setRuntime] = useState('ALL');
 
   const counts = useMemo(() => ({
@@ -61,145 +63,119 @@ export default function Applications() {
 
   const filtered = APPS.filter((app) => {
     const q = search.toLowerCase();
-    const matchSearch = app.name.toLowerCase().includes(q) || app.owner.toLowerCase().includes(q);
-    const matchStatus = status === 'ALL' || app.status === status;
-    const matchRuntime = runtime === 'ALL' || app.runtime.toLowerCase().includes(runtime);
-    return matchSearch && matchStatus && matchRuntime;
+    return (app.name.toLowerCase().includes(q) || app.owner.toLowerCase().includes(q))
+      && (status === 'ALL' || app.status === status)
+      && (runtime === 'ALL' || app.runtime.toLowerCase().includes(runtime));
   });
 
-  const tabs: { key: 'ALL' | App['status']; label: string }[] = [
-    { key: 'ALL', label: 'All' },
-    { key: 'HEALTHY', label: 'Healthy' },
-    { key: 'WARNING', label: 'Degraded' },
-    { key: 'CRITICAL', label: 'Failing' },
+  const tabs: { key: Filter; label: string }[] = [
+    { key: 'ALL', label: 'all' }, { key: 'HEALTHY', label: 'healthy' },
+    { key: 'WARNING', label: 'degraded' }, { key: 'CRITICAL', label: 'failing' },
   ];
 
   return (
     <div className="space-y-8">
-      <motion.header
-        initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease }}
-        className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between"
-      >
+      <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-[0.9rem] text-ink-3">Service catalogue</p>
-          <h1 className="mt-2 font-display text-[clamp(2.5rem,5vw,3.75rem)] leading-none tracking-[-0.02em]">
-            Applications <em className="text-ink-3 num">({APPS.length})</em>
-          </h1>
-          <p className="mt-3 max-w-lg text-[0.95rem] text-ink-2">
-            Every service on the platform, who owns it, and how it is doing.
-          </p>
+          <motion.p {...rise(0)} className="tag">Service catalogue</motion.p>
+          <motion.h1 {...rise(0.06)} className="mt-3 font-display text-[clamp(2.6rem,6vw,4.75rem)] font-extrabold leading-[0.98]">
+            every <span className="hl">SERVICE</span>,<br />
+            <span className="text-fg-3">one </span><span className="outline-text">place.</span>
+          </motion.h1>
         </div>
-        <button className="btn btn-ink self-start md:self-auto">
-          <Plus className="h-4 w-4" /> Register application
-        </button>
-      </motion.header>
+        <motion.button {...rise(0.15)} className="btn btn-accent btn-shine self-start md:self-auto">
+          <Plus className="h-4 w-4" strokeWidth={2.75} /> register app
+        </motion.button>
+      </header>
 
-      {/* ── Filters ─────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.05, ease }}
-        className="flex flex-col gap-3 lg:flex-row lg:items-center"
-      >
-        <div className="flex w-full items-center gap-1 overflow-x-auto rounded-full border border-line-2 bg-card p-1 lg:w-auto">
+      {/* ── filters ───────────────────────────── */}
+      <motion.div {...rise(0.12)} className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="flex w-full items-center gap-1 overflow-x-auto rounded-full border border-line bg-surface p-1 backdrop-blur lg:w-auto">
           {tabs.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setStatus(t.key)}
-              className={`flex h-8 shrink-0 items-center gap-2 rounded-full px-3.5 text-[0.85rem] transition-colors ${
-                status === t.key ? 'bg-ink text-paper' : 'text-ink-2 hover:text-ink'
-              }`}
-            >
-              {t.label}
-              <span className={`num text-[0.75rem] ${status === t.key ? 'text-paper/60' : 'text-ink-3'}`}>{counts[t.key]}</span>
+            <button key={t.key} onClick={() => setStatus(t.key)}
+              className={`relative flex h-9 shrink-0 items-center gap-2 rounded-full px-4 text-[0.875rem] font-bold transition-colors ${
+                status === t.key ? 'text-accent-ink' : 'text-fg-2 hover:text-fg'
+              }`}>
+              {status === t.key && (
+                <motion.span layoutId="app-filter" className="absolute inset-0 rounded-full bg-accent" transition={{ type: 'spring', stiffness: 420, damping: 34 }} />
+              )}
+              <span className="relative">{t.label}</span>
+              <span className={`relative font-mono text-[0.72rem] ${status === t.key ? 'opacity-60' : 'text-fg-3'}`}>{counts[t.key]}</span>
             </button>
           ))}
         </div>
 
-        <select
-          value={runtime}
-          onChange={(e) => setRuntime(e.target.value)}
-          className="field h-10 w-full cursor-pointer appearance-none rounded-full bg-[length:16px] bg-[right_14px_center] bg-no-repeat pr-10 text-[0.875rem] lg:w-44"
-          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238f897c' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")" }}
-        >
-          {RUNTIMES.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
-        </select>
+        <div className="relative w-full lg:w-48">
+          <select value={runtime} onChange={(e) => setRuntime(e.target.value)}
+            className="field h-11 w-full cursor-pointer appearance-none rounded-full pr-10 text-[0.875rem] font-bold">
+            {RUNTIMES.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-3" />
+        </div>
 
-        <label className="flex h-10 w-full items-center gap-2.5 rounded-full border border-line-2 bg-card px-4 text-ink-3 focus-within:border-ink lg:ml-auto lg:max-w-xs">
-          <Search className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Filter by name or team"
-            className="w-full bg-transparent text-[0.9rem] text-ink placeholder:text-ink-3 focus:outline-none"
-          />
+        <label className="flex h-11 w-full items-center gap-2.5 rounded-full border border-line-strong bg-surface px-4 text-fg-3 transition-colors focus-within:border-accent-text lg:ml-auto lg:max-w-xs">
+          <Search className="h-4 w-4 shrink-0" strokeWidth={2} />
+          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="filter by name or team"
+            className="w-full bg-transparent text-[0.9rem] font-medium text-fg placeholder:text-fg-3 focus:outline-none" />
         </label>
       </motion.div>
 
-      {/* ── Grid ────────────────────────────── */}
-      {filtered.length === 0 ? (
-        <div className="card flex flex-col items-center justify-center px-6 py-24 text-center">
-          <p className="font-display text-[2.25rem] leading-none">Nothing on this line.</p>
-          <p className="mt-3 text-[0.95rem] text-ink-3">Try another search, or clear the filters.</p>
-          <button
-            onClick={() => { setSearch(''); setStatus('ALL'); setRuntime('ALL'); }}
-            className="btn btn-ghost mt-6"
-          >
-            Clear filters
-          </button>
-        </div>
-      ) : (
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+      {/* ── grid ──────────────────────────────── */}
+      <motion.div layout className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <AnimatePresence mode="popLayout">
           {filtered.map((app, i) => {
             const m = monogram(app.runtime);
             const s = STATUS[app.status];
             return (
-              <motion.article
+              <motion.div
                 key={app.id}
-                initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.08 + i * 0.04, ease }}
-                className="card group flex cursor-pointer flex-col p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-line-2 hover:shadow-[var(--shadow-md)]"
+                layout
+                initial={{ opacity: 0, scale: 0.94, y: 16 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.94 }}
+                transition={{ duration: 0.45, delay: i * 0.04, ease }}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div
-                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl font-display text-[1.5rem] italic"
-                    style={{ background: m.bg, color: m.fg }}
-                  >
-                    {m.t}
+                <SpotPanel className="group flex h-full cursor-pointer flex-col p-6 hover:-translate-y-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl font-display text-[1.25rem] font-extrabold"
+                      style={{ color: m.c, background: `color-mix(in oklab, ${m.c} 15%, transparent)` }}>
+                      {m.t}
+                      <span className="absolute inset-0 rounded-2xl border" style={{ borderColor: `color-mix(in oklab, ${m.c} 35%, transparent)` }} />
+                    </div>
+                    <span className={`chip ${s.cls}`}>
+                      {app.status === 'CRITICAL' ? <span className="live-dot" /> : <i className="h-1.5 w-1.5 rounded-full bg-current" />}
+                      {s.label}
+                    </span>
                   </div>
-                  <span className={`chip ${s.soft}`}>
-                    {app.status === 'CRITICAL' ? <span className="live-dot" /> : <i className="h-1.5 w-1.5 rounded-full bg-current" />}
-                    {s.label}
-                  </span>
-                </div>
 
-                <h3 className="mt-5 flex items-center gap-1.5 text-[1.1rem] font-medium">
-                  {app.name}
-                  <ArrowUpRight className="h-4 w-4 text-ink-3 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100" />
-                </h3>
-                <p className="mt-1.5 text-[0.9rem] leading-relaxed text-ink-2">{app.description}</p>
+                  <h3 className="mt-5 flex items-center gap-1.5 font-display text-[1.45rem] font-extrabold leading-tight">
+                    {app.name}
+                    <ArrowUpRight className="h-5 w-5 -translate-x-1 text-accent-text opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100" />
+                  </h3>
+                  <p className="mt-1.5 text-[0.9rem] font-medium leading-relaxed text-fg-2">{app.description}</p>
+                  <p className="mt-4 flex items-center gap-1.5 font-mono text-[0.75rem] font-semibold text-fg-3">
+                    <GitBranch className="h-3.5 w-3.5" /> {app.repo}
+                  </p>
 
-                <p className="mt-4 flex items-center gap-1.5 font-mono text-[0.78rem] text-ink-3">
-                  <GitBranch className="h-3.5 w-3.5" /> {app.repo}
-                </p>
-
-                <dl className="mt-5 grid grid-cols-3 gap-3 border-t border-line pt-4 text-[0.8rem]">
-                  <div>
-                    <dt className="text-ink-3">Team</dt>
-                    <dd className="mt-0.5 truncate font-medium">{app.owner}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-ink-3">Version</dt>
-                    <dd className="mt-0.5 font-mono">{app.version}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-ink-3">Deployed</dt>
-                    <dd className="mt-0.5">{app.lastDeploy}</dd>
-                  </div>
-                </dl>
-                <p className="mt-3 text-[0.78rem] text-ink-3">{app.runtime}</p>
-              </motion.article>
+                  <dl className="mt-auto grid grid-cols-3 gap-3 border-t border-line pt-4 text-[0.82rem]" style={{ marginTop: '1.25rem' }}>
+                    <div><dt className="tag">Team</dt><dd className="mt-1 truncate font-bold">{app.owner}</dd></div>
+                    <div><dt className="tag">Ver</dt><dd className="mt-1 font-mono font-bold">{app.version}</dd></div>
+                    <div><dt className="tag">Shipped</dt><dd className="mt-1 font-bold">{app.lastDeploy}</dd></div>
+                  </dl>
+                  <p className="tag mt-4 !text-[0.62rem]">{app.runtime}</p>
+                </SpotPanel>
+              </motion.div>
             );
           })}
-        </div>
+        </AnimatePresence>
+      </motion.div>
+
+      {filtered.length === 0 && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="panel flex flex-col items-center px-6 py-20 text-center">
+          <p className="font-display text-[2.5rem] font-extrabold leading-none">nothing on this <span className="hl">LINE</span></p>
+          <p className="mt-3 font-medium text-fg-3">try another search, or clear the filters.</p>
+          <button onClick={() => { setSearch(''); setStatus('ALL'); setRuntime('ALL'); }} className="btn btn-ghost mt-6">clear filters</button>
+        </motion.div>
       )}
     </div>
   );
