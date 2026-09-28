@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Search, Filter, Server, Circle, GitBranch, User, ExternalLink } from 'lucide-react';
+import { Plus, Search, Filter, Server, Circle, GitBranch, User, ExternalLink, Boxes } from 'lucide-react';
 
 interface App {
   id: number;
@@ -33,10 +33,10 @@ const StatusBadge = ({ status }: { status: App['status'] }) => {
   const cfg = STATUS_CONFIG[status];
   return (
     <span
-      className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider"
+      className="flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em]"
       style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.color, fontFamily: 'JetBrains Mono, monospace' }}
     >
-      <Circle className="w-1.5 h-1.5 fill-current" />
+      <Circle className="h-1.5 w-1.5 fill-current" />
       {status}
     </span>
   );
@@ -57,34 +57,28 @@ export default function Applications() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center justify-between">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Application Catalog</h1>
-          <p className="text-[#94A3B8] text-sm mt-0.5">{APPS.length} services registered across the platform</p>
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#00F0FF]" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+            Catalog
+          </p>
+          <h1 className="text-3xl font-bold text-white">Application catalog</h1>
+          <p className="mt-1 text-sm text-[#94A3B8]">{APPS.length} services registered across the platform</p>
         </div>
         <button
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
-          style={{
-            background: 'rgba(0, 240, 255, 0.1)',
-            border: '1px solid rgba(0, 240, 255, 0.3)',
-            color: '#00F0FF',
-            boxShadow: '0 0 20px rgba(0, 240, 255, 0.1)',
-          }}
+          className="inline-flex items-center gap-2 rounded-xl border border-[rgba(0,240,255,0.25)] bg-[rgba(0,240,255,0.08)] px-4 py-2.5 text-sm font-semibold text-[#00F0FF] shadow-[0_0_20px_rgba(0,240,255,0.08)] transition-all hover:bg-[rgba(0,240,255,0.12)]"
         >
-          <Plus className="w-4 h-4" /> Register Application
+          <Plus className="w-4 h-4" /> Register application
         </button>
       </motion.div>
 
-      {/* Filters */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="flex flex-wrap gap-3 p-4 rounded-xl"
-        style={{ background: 'rgba(11, 20, 35, 0.8)', border: '1px solid rgba(255,255,255,0.06)' }}
+        className="flex flex-wrap gap-3 rounded-2xl border border-[rgba(148,163,184,0.08)] bg-[rgba(11,20,35,0.8)] p-4"
       >
-        <div className="relative flex-1 min-w-[200px]">
+        <div className="relative min-w-[220px] flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#475569] w-4 h-4" />
           <input
             type="text"
@@ -92,16 +86,16 @@ export default function Applications() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="platform-input pl-9"
-            style={{ paddingTop: '0.5rem', paddingBottom: '0.5rem' }}
+            style={{ paddingTop: '0.6rem', paddingBottom: '0.6rem' }}
           />
         </div>
         <select
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
           className="platform-input px-3"
-          style={{ width: 'auto', minWidth: '130px', paddingTop: '0.5rem', paddingBottom: '0.5rem' }}
+          style={{ width: 'auto', minWidth: '140px', paddingTop: '0.6rem', paddingBottom: '0.6rem' }}
         >
-          <option value="ALL">All Statuses</option>
+          <option value="ALL">All statuses</option>
           <option value="HEALTHY">Healthy</option>
           <option value="WARNING">Warning</option>
           <option value="CRITICAL">Critical</option>
@@ -110,91 +104,71 @@ export default function Applications() {
           value={runtimeFilter}
           onChange={e => setRuntimeFilter(e.target.value)}
           className="platform-input px-3"
-          style={{ width: 'auto', minWidth: '130px', paddingTop: '0.5rem', paddingBottom: '0.5rem' }}
+          style={{ width: 'auto', minWidth: '140px', paddingTop: '0.6rem', paddingBottom: '0.6rem' }}
         >
-          <option value="ALL">All Runtimes</option>
+          <option value="ALL">All runtimes</option>
           <option value="java">Java</option>
           <option value="go">Go</option>
           <option value="python">Python</option>
           <option value="node">Node</option>
         </select>
-        <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-[#94A3B8] hover:text-white transition-colors" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
-          <Filter className="w-4 h-4" /> More Filters
+        <button className="inline-flex items-center gap-2 rounded-xl border border-[rgba(148,163,184,0.08)] bg-[rgba(255,255,255,0.02)] px-3 py-2 text-sm text-[#94A3B8] transition-colors hover:text-white">
+          <Filter className="w-4 h-4" /> More filters
         </button>
       </motion.div>
 
-      {/* Grid */}
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <Box className="w-12 h-12 text-[#475569] mb-4" />
-          <p className="text-white font-semibold mb-1">No applications found</p>
-          <p className="text-[#94A3B8] text-sm">Try adjusting your search or filters.</p>
+          <Boxes className="mb-4 h-12 w-12 text-[#475569]" />
+          <p className="mb-1 text-lg font-semibold text-white">No applications found</p>
+          <p className="text-sm text-[#94A3B8]">Try adjusting your search or filters.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((app, i) => (
             <motion.div
               key={app.id}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
-              className="rounded-xl p-5 cursor-pointer group transition-all duration-200"
-              style={{
-                background: 'rgba(17, 29, 49, 0.8)',
-                border: '1px solid rgba(255,255,255,0.06)',
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.border = '1px solid rgba(0,240,255,0.25)';
-                (e.currentTarget as HTMLElement).style.boxShadow = '0 0 20px rgba(0,240,255,0.05)';
-                (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.border = '1px solid rgba(255,255,255,0.06)';
-                (e.currentTarget as HTMLElement).style.boxShadow = 'none';
-                (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-              }}
+              className="group rounded-2xl border border-[rgba(148,163,184,0.08)] bg-[rgba(17,29,49,0.82)] p-5 transition-all duration-200 hover:border-[rgba(0,240,255,0.26)] hover:shadow-[0_18px_40px_rgba(0,240,255,0.06)]"
             >
-              {/* Card Header */}
-              <div className="flex items-start justify-between mb-3">
+              <div className="mb-4 flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-base font-semibold text-white group-hover:text-[#00F0FF] transition-colors truncate">
-                      {app.name}
-                    </h3>
-                    <ExternalLink className="w-3.5 h-3.5 text-[#475569] opacity-0 group-hover:opacity-100 shrink-0 transition-opacity" />
+                    <h3 className="truncate text-base font-semibold text-white transition-colors group-hover:text-[#00F0FF]">{app.name}</h3>
+                    <ExternalLink className="h-3.5 w-3.5 shrink-0 text-[#475569] opacity-0 transition-opacity group-hover:opacity-100" />
                   </div>
-                  <p className="text-[#94A3B8] text-xs mt-0.5 truncate">{app.description}</p>
+                  <p className="mt-1 truncate text-xs text-[#94A3B8]">{app.description}</p>
                 </div>
                 <StatusBadge status={app.status} />
               </div>
 
-              {/* Runtime pill */}
               <div className="mb-4">
                 <span
-                  className="text-[10px] px-2 py-0.5 rounded"
-                  style={{ background: 'rgba(0,240,255,0.05)', border: '1px solid rgba(0,240,255,0.1)', color: '#00F0FF', fontFamily: 'JetBrains Mono, monospace' }}
+                  className="rounded-lg border border-[rgba(0,240,255,0.12)] bg-[rgba(0,240,255,0.05)] px-2 py-1 text-[10px] text-[#00F0FF]"
+                  style={{ fontFamily: 'JetBrains Mono, monospace' }}
                 >
                   {app.runtime}
                 </span>
               </div>
 
-              {/* Details */}
-              <div className="space-y-2 pt-3 border-t border-[rgba(255,255,255,0.05)] text-sm">
+              <div className="space-y-2 border-t border-[rgba(255,255,255,0.05)] pt-3 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-[#94A3B8] text-xs"><User className="w-3 h-3" /> Owner</span>
-                  <span className="text-white text-xs font-medium">{app.owner}</span>
+                  <span className="flex items-center gap-1.5 text-xs text-[#94A3B8]"><User className="w-3.5 h-3.5" /> Owner</span>
+                  <span className="text-xs font-medium text-white">{app.owner}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-[#94A3B8] text-xs"><GitBranch className="w-3 h-3" /> Repository</span>
-                  <span className="text-[#00F0FF] text-xs" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{app.repo}</span>
+                  <span className="flex items-center gap-1.5 text-xs text-[#94A3B8]"><GitBranch className="w-3.5 h-3.5" /> Repo</span>
+                  <span className="text-xs text-[#00F0FF]" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{app.repo}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-[#94A3B8] text-xs"><Server className="w-3 h-3" /> Production</span>
-                  <span className="text-white text-xs font-medium" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{app.version}</span>
+                  <span className="flex items-center gap-1.5 text-xs text-[#94A3B8]"><Server className="w-3.5 h-3.5" /> Runtime</span>
+                  <span className="text-xs font-medium text-white" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{app.version}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[#94A3B8] text-xs">Last Deploy</span>
-                  <span className="text-[#475569] text-xs">{app.lastDeploy}</span>
+                  <span className="text-xs text-[#94A3B8]">Last deploy</span>
+                  <span className="text-xs text-[#64748b]">{app.lastDeploy}</span>
                 </div>
               </div>
             </motion.div>
