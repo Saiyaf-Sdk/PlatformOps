@@ -22,9 +22,6 @@ spring:
     default-property-inclusion: non_null
     serialization:
       write-dates-as-timestamps: false
-  mvc:
-    problemdetails:
-      enabled: true
 
 server:
   port: ${PORT:8080}
@@ -39,15 +36,12 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus,metrics
+        include: health,info
   endpoint:
     health:
       probes:
         enabled: true
       show-details: never
-  metrics:
-    tags:
-      application: platformops-api
 
 springdoc:
   swagger-ui:

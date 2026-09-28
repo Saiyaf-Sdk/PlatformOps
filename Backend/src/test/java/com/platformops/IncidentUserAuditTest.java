@@ -121,7 +121,6 @@ class IncidentUserAuditTest extends ApiTestBase {
     void healthAndDocsArePublic() throws Exception {
         get("/actuator/health", null).andExpect(status().isOk());
         get("/v3/api-docs", null).andExpect(status().isOk());
-        get("/actuator/prometheus", null).andExpect(status().isOk());
         get("/api/v1/nope", tokenFor(Role.VIEWER)).andExpect(status().isNotFound());
     }
 }
