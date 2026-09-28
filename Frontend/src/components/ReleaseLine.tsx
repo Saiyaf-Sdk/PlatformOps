@@ -24,7 +24,11 @@ const DUR = 10;
 const TRAINS = [0, 3.33, 6.66];
 const TAIL = [0, 0.05, 0.1, 0.16, 0.22, 0.29, 0.37];
 
-export default function ReleaseLine({ mode = 'story', className = '', delay = 0.2 }: { mode?: 'story' | 'status'; className?: string; delay?: number }) {
+export type StationValues = Partial<Record<'commit' | 'build' | 'image' | 'dev' | 'staging' | 'prod', string>>;
+
+export default function ReleaseLine({ mode = 'story', className = '', delay = 0.2, values }: {
+  mode?: 'story' | 'status'; className?: string; delay?: number; values?: StationValues;
+}) {
   const uid = useId().replace(/:/g, '');
   const ease = [0.65, 0, 0.35, 1] as const;
 
@@ -92,7 +96,7 @@ export default function ReleaseLine({ mode = 'story', className = '', delay = 0.
             <text x={s.x} y={subY} textAnchor="middle"
               fill={env && mode === 'status' ? s.color : 'var(--text-3)'}
               style={{ font: '500 11.5px "JetBrains Mono Variable", monospace', letterSpacing: mode === 'story' ? '0.14em' : '0.02em' }}>
-              {mode === 'status' ? s.version : s.story}
+              {mode === 'status' ? (values?.[s.id as keyof StationValues] ?? s.version) : s.story}
             </text>
           </motion.g>
         );

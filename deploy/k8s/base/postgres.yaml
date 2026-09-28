@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Service
+metadata: { name: db, labels: { app: db } }
+spec:
+  ports: [{ port: 5432 }]
+  selector: { app: db }
+  clusterIP: None
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: { name: db }
+spec:
+  serviceName: db
+  replicas: 1
+  selector: { matchLabels: { app: db } }
+  template:
+    metadata: { labels: { app: db } }
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports: [{ containerPort: 5432 }]
+          env:
+            - { name: POSTGRES_DB, value: platformops }
+            - { name: POSTGRES_USER, valueFrom: { secretKeyRef: { name: platformops-secrets, key: DB_USERNAME } } }
+            - { name: POSTGRES_PASSWORD, valueFrom: { secretKeyRef: { name: platformops-secrets, key: DB_PASSWORD } } }
+            - { name: PGDATA, value: /var/lib/postgresql/data/pgdata }
+          readinessProbe: { exec: { command: ["pg_isready", "-U", "platformops"] }, periodSeconds: 5 }
+          resources: { requests: { cpu: 100m, memory: 256Mi }, limits: { memory: 512Mi } }
+          volumeMounts: [{ name: data, mountPath: /var/lib/postgresql/data }]
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec: { accessModes: ["ReadWriteOnce"], resources: { requests: { storage: 5Gi } } }

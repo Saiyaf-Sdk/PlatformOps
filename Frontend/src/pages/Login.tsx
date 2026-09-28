@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -13,6 +13,7 @@ import ThemeToggle from '../components/ThemeToggle';
 import Intro from '../components/Intro';
 import { Magnetic, RevealWords, SpotPanel } from '../components/fx';
 import { ease } from '../components/motion';
+import { errorMessage } from '../lib/api';
 
 const loginSchema = z.object({
   email: z.string().email('that doesn’t look like an email'),
@@ -39,17 +40,34 @@ const isFirstVisit = () => {
 };
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [showPw, setShowPw] = useState(false);
   const [D] = useState(() => (isFirstVisit() ? 1.7 : 0.1));
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
+  const from = (location.state as { from?: string } | null)?.from ?? '/dashboard';
 
-  const onSubmit = (data: LoginForm) => {
+  const onSubmit = async (data: LoginForm) => {
     setIsLoading(true);
-    setTimeout(() => { login(data.email, data.password); navigate('/dashboard'); }, 900);
+    setFormError(null);
+    try {
+      await login(data.email, data.password);
+      navigate(from, { replace: true });
+    } catch (err) {
+      setFormError(errorMessage(err));
+      setIsLoading(false);
+    }
   };
+
+  const fillDemo = () => {
+    setValue('email', 'admin@platformops.dev', { shouldValidate: true });
+    setValue('password', 'Admin@12345', { shouldValidate: true });
+  };
+
+  if (isAuthenticated) return <Navigate to={from} replace />;
 
   return (
     <div className="relative flex min-h-screen flex-col">
@@ -140,6 +158,14 @@ export default function Login() {
                 keep me signed in for 30 days
               </label>
 
+              {formError && (
+                <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} role="alert"
+                  className="rounded-2xl border p-3.5 text-[0.85rem] font-semibold text-bad"
+                  style={{ borderColor: 'color-mix(in oklab, var(--bad) 35%, transparent)', background: 'color-mix(in oklab, var(--bad) 8%, transparent)' }}>
+                  {formError}
+                </motion.p>
+              )}
+
               <Magnetic strength={0.12} className="w-full">
                 <button type="submit" disabled={isLoading} className="btn btn-primary group h-12 w-full text-[0.95rem]">
                   {isLoading ? (
@@ -152,7 +178,11 @@ export default function Login() {
             </form>
 
             <div className="my-6 flex items-center gap-4"><span className="h-px flex-1 bg-line" /><span className="tag">or</span><span className="h-px flex-1 bg-line" /></div>
-            <button type="button" className="btn btn-ghost h-12 w-full"><KeyRound className="h-4 w-4" /> continue with SSO</button>
+            {import.meta.env.VITE_HIDE_DEMO !== 'true' ? (
+              <button type="button" onClick={fillDemo} className="btn btn-ghost h-12 w-full"><KeyRound className="h-4 w-4" /> use the <b className="font-extrabold">DEMO</b> admin account</button>
+            ) : (
+              <button type="button" className="btn btn-ghost h-12 w-full"><KeyRound className="h-4 w-4" /> continue with SSO</button>
+            )}
           </SpotPanel>
         </motion.div>
       </div>

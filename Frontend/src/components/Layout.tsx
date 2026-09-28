@@ -1,12 +1,17 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useLocation, useOutlet } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bell, Search, Plus, Menu } from 'lucide-react';
 import Sidebar from './Sidebar';
 import Background from './Background';
 import ThemeToggle from './ThemeToggle';
+import DeployModal from './DeployModal';
 import { LogoMark } from './Logo';
 import { Magnetic, RouteProgress } from './fx';
+import { useAuth } from '../context/AuthContext';
+import { useLiveEvents } from '../lib/live';
+import { useToast } from './Toaster';
+import type { Deployment, Incident } from '../lib/types';
 
 const NAMES: Record<string, string> = {
   dashboard: 'overview', applications: 'applications', environments: 'environments', deployments: 'deployments',
@@ -15,9 +20,24 @@ const NAMES: Record<string, string> = {
 
 export default function Layout() {
   const [open, setOpen] = useState(false);
+  const [deployOpen, setDeployOpen] = useState(false);
   const location = useLocation();
   const outlet = useOutlet();
+  const { can } = useAuth();
+  const toast = useToast();
   const page = NAMES[location.pathname.slice(1)] ?? '';
+
+  const onEvent = useCallback((type: string, payload: unknown) => {
+    if (type === 'deployment.updated') {
+      const d = payload as Deployment;
+      if (d.status === 'SUCCEEDED') toast({ tone: 'success', title: `${d.application.name} ${d.version} arrived`, body: `Live on ${d.environment.displayName}.` });
+      if (d.status === 'FAILED') toast({ tone: 'error', title: `${d.application.name} ${d.version} halted`, body: d.failureReason });
+    } else if (type === 'incident.created') {
+      const i = payload as Incident;
+      toast({ tone: 'warn', title: `${i.severity} incident opened`, body: i.title });
+    }
+  }, [toast]);
+  useLiveEvents(onEvent);
 
   return (
     <div className="min-h-screen">
@@ -27,7 +47,7 @@ export default function Layout() {
 
       <div className="flex min-h-screen flex-col lg:pl-[276px]">
         <header className="sticky top-0 z-30 px-3 pt-3 sm:px-6">
-          <div className="flex h-16 items-center gap-3 rounded-full border border-line glass pl-3 pr-2 backdrop-blur-xl sm:pl-5">
+          <div className="glass flex h-16 items-center gap-3 rounded-full border border-line pl-3 pr-2 sm:pl-5">
             <button onClick={() => setOpen(true)} className="rounded-full p-2 text-fg-2 hover:bg-surface-2 lg:hidden" aria-label="Open menu">
               <Menu className="h-5 w-5" />
             </button>
@@ -37,16 +57,8 @@ export default function Layout() {
               <span className="tag">PlatformOps</span>
               <span className="text-fg-3">/</span>
               <AnimatePresence mode="wait">
-                <motion.span
-                  key={page}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.25 }}
-                  className="font-display text-[1.05rem] font-bold"
-                >
-                  {page}
-                </motion.span>
+                <motion.span key={page} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }}
+                  className="font-display text-[1.05rem] font-bold">{page}</motion.span>
               </AnimatePresence>
             </div>
 
@@ -60,14 +72,15 @@ export default function Layout() {
               <ThemeToggle />
               <button className="relative flex h-10 w-10 items-center justify-center rounded-full border border-line bg-surface text-fg-2 transition-colors hover:text-fg" aria-label="Notifications">
                 <Bell className="h-[18px] w-[18px]" strokeWidth={2} />
-                <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-bad ring-2 ring-[var(--surface-solid)]" />
               </button>
-              <Magnetic>
-                <button className="btn btn-primary">
-                  <Plus className="h-4 w-4" strokeWidth={2.5} />
-                  <span className="hidden sm:inline">deploy</span>
-                </button>
-              </Magnetic>
+              {can('ADMIN', 'DEVOPS', 'DEVELOPER') && (
+                <Magnetic>
+                  <button className="btn btn-primary" onClick={() => setDeployOpen(true)}>
+                    <Plus className="h-4 w-4" strokeWidth={2.5} />
+                    <span className="hidden sm:inline">deploy</span>
+                  </button>
+                </Magnetic>
+              )}
             </div>
           </div>
         </header>
@@ -88,6 +101,8 @@ export default function Layout() {
           </div>
         </main>
       </div>
+
+      <DeployModal open={deployOpen} onClose={() => setDeployOpen(false)} />
     </div>
   );
 }
