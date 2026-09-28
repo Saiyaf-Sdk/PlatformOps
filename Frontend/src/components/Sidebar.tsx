@@ -11,20 +11,22 @@ const NavItem = ({ to, icon: Icon, label, badge, onNavigate }: NavItemProps) => 
   <NavLink to={to} onClick={onNavigate} className="relative block">
     {({ isActive }) => (
       <span className={`relative flex h-10 items-center gap-3 rounded-full pl-3.5 pr-2.5 text-[0.9rem] font-semibold transition-colors ${
-        isActive ? 'text-accent-ink' : 'text-fg-2 hover:text-fg'
+        isActive ? 'text-fg' : 'text-fg-2 hover:text-fg'
       }`}>
         {isActive && (
           <motion.span
             layoutId="nav-pill"
-            className="absolute inset-0 rounded-full bg-accent"
-            transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-          />
+            className="absolute inset-0 rounded-full border border-line-strong bg-surface-2 shadow-[0_8px_24px_-12px_var(--iris)]"
+            transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+          >
+            <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full" style={{ background: 'var(--grad)', boxShadow: '0 0 10px var(--iris)' }} />
+          </motion.span>
         )}
-        <Icon className="relative h-[17px] w-[17px] shrink-0" strokeWidth={2.1} />
+        <Icon className={`relative h-[17px] w-[17px] shrink-0 transition-colors ${isActive ? 'text-accent-text' : ''}`} strokeWidth={2} />
         <span className="relative flex-1">{label}</span>
         {badge && (
           <span className={`relative flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 font-mono text-[0.68rem] font-bold ${
-            isActive ? 'bg-accent-ink text-accent' : 'bg-bad text-white'
+            'bg-bad text-white shadow-[0_0_12px_var(--bad)]'
           }`}>{badge}</span>
         )}
       </span>
@@ -50,7 +52,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
         className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity lg:hidden ${open ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
       />
       <aside
-        className={`fixed inset-y-3 left-3 z-50 flex w-[252px] flex-col rounded-[26px] border border-line glass backdrop-blur-xl transition-transform duration-500 [transition-timing-function:cubic-bezier(.16,1,.3,1)] lg:translate-x-0 ${
+        className={`fixed inset-y-3 left-3 z-50 flex w-[252px] flex-col rounded-[26px] border border-line glass transition-transform duration-500 [transition-timing-function:cubic-bezier(.16,1,.3,1)] lg:translate-x-0 ${
           open ? 'translate-x-0' : '-translate-x-[110%]'
         }`}
       >
@@ -61,7 +63,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
           </button>
         </div>
 
-        <nav className="flex-1 space-y-6 overflow-y-auto px-3 pb-4">
+        <nav data-lenis-prevent className="flex-1 space-y-6 overflow-y-auto px-3 pb-4">
           <div><NavItem to="/dashboard" icon={LayoutGrid} label="overview" onNavigate={onClose} /></div>
           <Section label="Delivery">
             <NavItem to="/applications" icon={Boxes} label="applications" onNavigate={onClose} />
@@ -99,7 +101,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
         </div>
 
         <div className="flex items-center gap-3 border-t border-line px-4 py-3.5">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet to-coral font-display text-base font-extrabold text-white">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky via-iris to-lilac font-display text-base font-extrabold text-white">
             {user?.name?.charAt(0) ?? 'A'}
           </div>
           <div className="min-w-0 flex-1">

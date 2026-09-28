@@ -10,6 +10,8 @@ import Logo from '../components/Logo';
 import ReleaseLine from '../components/ReleaseLine';
 import Background from '../components/Background';
 import ThemeToggle from '../components/ThemeToggle';
+import Intro from '../components/Intro';
+import { Magnetic, RevealWords, SpotPanel } from '../components/fx';
 import { ease } from '../components/motion';
 
 const loginSchema = z.object({
@@ -28,18 +30,20 @@ const TICKER = [
   { app: 'analytics-engine', v: 'v1.0.0', env: 'STAGING', ok: true },
 ];
 
-const word = (i: number) => ({
-  initial: { opacity: 0, y: '60%', rotate: 3 },
-  animate: { opacity: 1, y: '0%', rotate: 0 },
-  transition: { duration: 0.9, delay: 0.1 + i * 0.09, ease },
-});
+// the intro runs ~1.9s on the first visit of a session; entrances start as the curtain lifts
+const isFirstVisit = () => {
+  try {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
+    return sessionStorage.getItem('po-intro') !== '1';
+  } catch { return false; }
+};
 
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [showPw, setShowPw] = useState(false);
-
+  const [D] = useState(() => (isFirstVisit() ? 1.7 : 0.1));
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
 
   const onSubmit = (data: LoginForm) => {
@@ -49,121 +53,125 @@ export default function Login() {
 
   return (
     <div className="relative flex min-h-screen flex-col">
+      <Intro />
       <Background />
 
-      <header className="flex items-center justify-between px-6 pt-6 sm:px-10">
+      <motion.header
+        initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay: D, ease }}
+        className="flex items-center justify-between px-6 pt-6 sm:px-10"
+      >
         <Logo />
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-5">
           <span className="tag hidden items-center gap-2 sm:flex"><span className="live-dot text-ok" /> All lines running</span>
           <ThemeToggle />
         </div>
-      </header>
+      </motion.header>
 
-      <div className="grid flex-1 items-center gap-12 px-6 py-10 sm:px-10 lg:grid-cols-[1.35fr_1fr] xl:gap-20">
+      <div className="grid flex-1 items-center gap-12 px-6 py-10 sm:px-10 lg:grid-cols-[1.35fr_1fr] xl:gap-24">
         {/* ── story ───────────────────────────── */}
         <section>
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }} className="tag mb-6">
-            {'// '}Release control for platform teams
-          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: D, ease }}
+            className="mb-7 inline-flex items-center gap-2.5 rounded-full border border-line-strong bg-surface py-1 pl-1 pr-3.5 backdrop-blur"
+          >
+            <span className="rounded-full px-2.5 py-0.5 text-[0.7rem] font-bold tracking-wide text-white" style={{ background: 'var(--grad)' }}>NEW</span>
+            <span className="text-[0.8rem] font-semibold text-fg-2">canary releases, now one click</span>
+          </motion.div>
 
-          <h1 className="font-display text-[clamp(3.4rem,8.2vw,7.6rem)] font-extrabold leading-[0.86]">
-            <span className="block overflow-hidden pb-[0.06em]">
-              <motion.span className="inline-block" {...word(0)}>ship</motion.span>{' '}
-              <motion.span className="hl inline-block" {...word(1)}>FASTER</motion.span>
-            </span>
-            <span className="block overflow-hidden pb-[0.08em]">
-              <motion.span className="outline-text inline-block" {...word(2)}>sleep</motion.span>{' '}
-              <motion.span className="shimmer-text inline-block" {...word(3)}>better.</motion.span>
-            </span>
+          <h1 className="font-display text-[clamp(3.3rem,8vw,7.4rem)] font-extrabold leading-[0.9]">
+            <RevealWords
+              delay={D + 0.1}
+              parts={[{ t: 'ship' }, { t: 'FASTER.', className: 'grad' }, 'br', { t: 'sleep', className: 'thin' }, { t: 'better.' }]}
+            />
           </h1>
 
           <motion.p
-            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.5, ease }}
-            className="mt-7 max-w-md text-[1.05rem] font-medium leading-relaxed text-fg-2"
+            initial={{ opacity: 0, y: 14, filter: 'blur(8px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} transition={{ duration: 1, delay: D + 0.55, ease }}
+            className="mt-8 max-w-md text-[1.075rem] font-medium leading-relaxed text-fg-2"
           >
-            Every release is a train on the line — from <b className="text-fg">commit</b> to <b className="text-fg">PROD</b>.
-            Know where each one is, always.
+            Every release is a train on the line — from <b className="font-bold text-fg">commit</b> to <b className="font-bold text-fg">PROD</b>.
+            PlatformOps shows you where each one is, the moment it moves.
           </motion.p>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, delay: 0.65, ease }}
-            className="-mx-2 mt-10 hidden sm:block"
-          >
-            <ReleaseLine mode="story" />
-          </motion.div>
+          <div className="-mx-2 mt-12 hidden sm:block">
+            <ReleaseLine mode="story" delay={D + 0.6} />
+          </div>
         </section>
 
         {/* ── sign in ─────────────────────────── */}
-        <motion.section
-          initial={{ opacity: 0, y: 30, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.9, delay: 0.25, ease }}
-          className="panel mx-auto w-full max-w-[430px] p-7 sm:p-9"
+        <motion.div
+          initial={{ opacity: 0, y: 40, scale: 0.96, filter: 'blur(14px)' }}
+          animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+          transition={{ duration: 1.2, delay: D + 0.25, ease }}
+          className="mx-auto w-full max-w-[440px]"
         >
-          <p className="tag">Sign in</p>
-          <h2 className="mt-3 font-display text-[2.6rem] font-extrabold leading-none">
-            welcome <span className="text-accent-text">BACK</span>
-          </h2>
-          <p className="mt-3 text-[0.95rem] font-medium text-fg-2">Step into the control room.</p>
+          <SpotPanel beam className="p-7 sm:p-9">
+            <p className="tag">Sign in</p>
+            <h2 className="mt-3 font-display text-[2.6rem] font-extrabold leading-none">
+              welcome <span className="grad">BACK</span>
+            </h2>
+            <p className="mt-3 text-[0.95rem] font-medium text-fg-2">Step into the control room.</p>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5" noValidate>
-            <div>
-              <label htmlFor="email" className="tag mb-2 block">Work email</label>
-              <input id="email" {...register('email')} className="field" placeholder="you@company.com" autoComplete="email" />
-              {errors.email && <p className="mt-1.5 text-[0.8rem] font-semibold text-bad">{errors.email.message}</p>}
-            </div>
-
-            <div>
-              <div className="mb-2 flex items-baseline justify-between">
-                <label htmlFor="password" className="tag">Password</label>
-                <a href="#" className="text-[0.8rem] font-semibold text-fg-3 transition-colors hover:text-accent-text">forgot?</a>
+            <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5" noValidate>
+              <div>
+                <label htmlFor="email" className="tag mb-2 block">Work email</label>
+                <input id="email" {...register('email')} className="field" placeholder="you@company.com" autoComplete="email" />
+                {errors.email && <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="mt-1.5 text-[0.8rem] font-semibold text-bad">{errors.email.message}</motion.p>}
               </div>
-              <div className="relative">
-                <input id="password" type={showPw ? 'text' : 'password'} {...register('password')} className="field pr-12"
-                  placeholder="••••••••" autoComplete="current-password" />
-                <button type="button" onClick={() => setShowPw((v) => !v)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-2 text-fg-3 hover:text-fg"
-                  aria-label={showPw ? 'Hide password' : 'Show password'}>
-                  {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+
+              <div>
+                <div className="mb-2 flex items-baseline justify-between">
+                  <label htmlFor="password" className="tag">Password</label>
+                  <a href="#" className="text-[0.8rem] font-semibold text-fg-3 transition-colors hover:text-accent-text">forgot?</a>
+                </div>
+                <div className="relative">
+                  <input id="password" type={showPw ? 'text' : 'password'} {...register('password')} className="field pr-12" placeholder="••••••••" autoComplete="current-password" />
+                  <button type="button" onClick={() => setShowPw((v) => !v)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-2 text-fg-3 hover:text-fg"
+                    aria-label={showPw ? 'Hide password' : 'Show password'}>
+                    {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {errors.password && <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="mt-1.5 text-[0.8rem] font-semibold text-bad">{errors.password.message}</motion.p>}
+              </div>
+
+              <label className="flex cursor-pointer select-none items-center gap-2.5 text-[0.875rem] font-medium text-fg-2">
+                <input type="checkbox" {...register('remember')} className="h-4 w-4 rounded accent-[var(--iris)]" />
+                keep me signed in for 30 days
+              </label>
+
+              <Magnetic strength={0.12} className="w-full">
+                <button type="submit" disabled={isLoading} className="btn btn-primary group h-12 w-full text-[0.95rem]">
+                  {isLoading ? (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-ink border-t-transparent" />
+                  ) : (
+                    <>enter the <b className="font-extrabold">CONTROL ROOM</b> <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" /></>
+                  )}
                 </button>
-              </div>
-              {errors.password && <p className="mt-1.5 text-[0.8rem] font-semibold text-bad">{errors.password.message}</p>}
-            </div>
+              </Magnetic>
+            </form>
 
-            <label className="flex cursor-pointer select-none items-center gap-2.5 text-[0.875rem] font-medium text-fg-2">
-              <input type="checkbox" {...register('remember')} className="h-4 w-4 rounded accent-[var(--accent)]" />
-              keep me signed in for 30 days
-            </label>
-
-            <button type="submit" disabled={isLoading} className="btn btn-accent btn-shine group h-12 w-full text-[0.95rem]">
-              {isLoading ? (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent-ink border-t-transparent" />
-              ) : (
-                <>enter the <b className="font-extrabold">CONTROL ROOM</b> <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></>
-              )}
-            </button>
-          </form>
-
-          <div className="my-6 flex items-center gap-4"><span className="h-px flex-1 bg-line" /><span className="tag">or</span><span className="h-px flex-1 bg-line" /></div>
-
-          <button type="button" className="btn btn-ghost h-12 w-full"><KeyRound className="h-4 w-4" /> continue with SSO</button>
-        </motion.section>
+            <div className="my-6 flex items-center gap-4"><span className="h-px flex-1 bg-line" /><span className="tag">or</span><span className="h-px flex-1 bg-line" /></div>
+            <button type="button" className="btn btn-ghost h-12 w-full"><KeyRound className="h-4 w-4" /> continue with SSO</button>
+          </SpotPanel>
+        </motion.div>
       </div>
 
       {/* ── live ticker ────────────────────────── */}
-      <div className="marquee border-t border-line py-4">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.2, delay: D + 0.9 }} className="marquee border-t border-line py-4">
         {[0, 1].map((k) => (
           <div key={k} className="marquee-track" aria-hidden={k === 1}>
             {TICKER.map((t) => (
-              <span key={t.app} className="flex items-center gap-3 whitespace-nowrap text-[0.9rem]">
-                <span className={`h-2 w-2 rounded-full ${t.ok ? 'bg-ok' : 'bg-bad'}`} />
+              <span key={t.app} className="flex items-center gap-3 whitespace-nowrap">
+                <span className={`live-dot ${t.ok ? 'text-ok' : 'text-bad'}`} />
                 <b className="font-display text-[1.05rem] font-bold">{t.app}</b>
-                <span className="font-mono text-[0.8rem] text-fg-3">{t.v}</span>
+                <span className="font-mono text-[0.78rem] text-fg-3">{t.v}</span>
                 <span className="tag !text-fg-2">→ {t.env}</span>
-                <span className="text-fg-3">✦</span>
               </span>
             ))}
           </div>
         ))}
-      </div>
+      </motion.div>
     </div>
   );
 }

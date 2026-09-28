@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Plus, Search, GitBranch, ArrowUpRight, ChevronDown } from 'lucide-react';
-import { SpotPanel } from '../components/fx';
+import { Magnetic, RevealWords, TiltCard } from '../components/fx';
 import { ease, rise } from '../components/motion';
 
 interface App {
@@ -41,8 +41,8 @@ const RUNTIMES = [
 
 function monogram(runtime: string) {
   const r = runtime.toLowerCase();
-  if (r.startsWith('java')) return { t: 'JV', c: 'var(--coral)' };
-  if (r.startsWith('go')) return { t: 'GO', c: 'var(--violet)' };
+  if (r.startsWith('java')) return { t: 'JV', c: 'var(--lilac)' };
+  if (r.startsWith('go')) return { t: 'GO', c: 'var(--iris)' };
   if (r.startsWith('python')) return { t: 'PY', c: 'var(--amber)' };
   return { t: 'JS', c: 'var(--ok)' };
 }
@@ -78,14 +78,15 @@ export default function Applications() {
       <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div>
           <motion.p {...rise(0)} className="tag">Service catalogue</motion.p>
-          <motion.h1 {...rise(0.06)} className="mt-3 font-display text-[clamp(2.6rem,6vw,4.75rem)] font-extrabold leading-[0.98]">
-            every <span className="hl">SERVICE</span>,<br />
-            <span className="text-fg-3">one </span><span className="outline-text">place.</span>
-          </motion.h1>
+          <h1 className="mt-4 font-display text-[clamp(2.6rem,6vw,4.75rem)] font-extrabold leading-[0.98]">
+            <RevealWords delay={0.06} parts={[{ t: 'every' }, { t: 'SERVICE,', className: 'grad' }, 'br', { t: 'one', className: 'thin' }, { t: 'place.' }]} />
+          </h1>
         </div>
-        <motion.button {...rise(0.15)} className="btn btn-accent btn-shine self-start md:self-auto">
-          <Plus className="h-4 w-4" strokeWidth={2.75} /> register app
-        </motion.button>
+        <motion.div {...rise(0.3)} className="self-start md:self-auto">
+          <Magnetic>
+            <button className="btn btn-primary"><Plus className="h-4 w-4" strokeWidth={2.5} /> register app</button>
+          </Magnetic>
+        </motion.div>
       </header>
 
       {/* ── filters ───────────────────────────── */}
@@ -94,10 +95,10 @@ export default function Applications() {
           {tabs.map((t) => (
             <button key={t.key} onClick={() => setStatus(t.key)}
               className={`relative flex h-9 shrink-0 items-center gap-2 rounded-full px-4 text-[0.875rem] font-bold transition-colors ${
-                status === t.key ? 'text-accent-ink' : 'text-fg-2 hover:text-fg'
+                status === t.key ? 'text-primary-ink' : 'text-fg-2 hover:text-fg'
               }`}>
               {status === t.key && (
-                <motion.span layoutId="app-filter" className="absolute inset-0 rounded-full bg-accent" transition={{ type: 'spring', stiffness: 420, damping: 34 }} />
+                <motion.span layoutId="app-filter" className="absolute inset-0 rounded-full bg-primary shadow-[0_6px_20px_-8px_var(--iris)]" transition={{ type: 'spring', stiffness: 420, damping: 34 }} />
               )}
               <span className="relative">{t.label}</span>
               <span className={`relative font-mono text-[0.72rem] ${status === t.key ? 'opacity-60' : 'text-fg-3'}`}>{counts[t.key]}</span>
@@ -113,7 +114,7 @@ export default function Applications() {
           <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-3" />
         </div>
 
-        <label className="flex h-11 w-full items-center gap-2.5 rounded-full border border-line-strong bg-surface px-4 text-fg-3 transition-colors focus-within:border-accent-text lg:ml-auto lg:max-w-xs">
+        <label className="flex h-11 w-full items-center gap-2.5 rounded-full border border-line-strong bg-surface px-4 text-fg-3 transition-colors focus-within:border-iris lg:ml-auto lg:max-w-xs">
           <Search className="h-4 w-4 shrink-0" strokeWidth={2} />
           <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="filter by name or team"
             className="w-full bg-transparent text-[0.9rem] font-medium text-fg placeholder:text-fg-3 focus:outline-none" />
@@ -135,7 +136,7 @@ export default function Applications() {
                 exit={{ opacity: 0, scale: 0.94 }}
                 transition={{ duration: 0.45, delay: i * 0.04, ease }}
               >
-                <SpotPanel className="group flex h-full cursor-pointer flex-col p-6 hover:-translate-y-1">
+                <TiltCard className="cursor-pointer p-6"><div className="flex h-full flex-col">
                   <div className="flex items-start justify-between gap-3">
                     <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl font-display text-[1.25rem] font-extrabold"
                       style={{ color: m.c, background: `color-mix(in oklab, ${m.c} 15%, transparent)` }}>
@@ -163,7 +164,7 @@ export default function Applications() {
                     <div><dt className="tag">Shipped</dt><dd className="mt-1 font-bold">{app.lastDeploy}</dd></div>
                   </dl>
                   <p className="tag mt-4 !text-[0.62rem]">{app.runtime}</p>
-                </SpotPanel>
+                </div></TiltCard>
               </motion.div>
             );
           })}
@@ -172,7 +173,7 @@ export default function Applications() {
 
       {filtered.length === 0 && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="panel flex flex-col items-center px-6 py-20 text-center">
-          <p className="font-display text-[2.5rem] font-extrabold leading-none">nothing on this <span className="hl">LINE</span></p>
+          <p className="font-display text-[2.5rem] font-extrabold leading-none">nothing on this <span className="grad">LINE</span></p>
           <p className="mt-3 font-medium text-fg-3">try another search, or clear the filters.</p>
           <button onClick={() => { setSearch(''); setStatus('ALL'); setRuntime('ALL'); }} className="btn btn-ghost mt-6">clear filters</button>
         </motion.div>

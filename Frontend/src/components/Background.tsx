@@ -1,11 +1,12 @@
-/** Fixed, animated backdrop: drifting aurora blobs + panning grid + film grain. */
+import Aurora from './Aurora';
+
+/** Fixed backdrop: WebGL aurora + dot matrix + vignette + static grain. */
 export default function Background() {
   return (
     <div className="bg-stage" aria-hidden="true">
-      <div className="bg-blob b1" />
-      <div className="bg-blob b2" />
-      <div className="bg-blob b3" />
-      <div className="bg-grid" />
+      <Aurora />
+      <div className="bg-dots" />
+      <div className="bg-vignette" />
       <div className="bg-grain" />
     </div>
   );

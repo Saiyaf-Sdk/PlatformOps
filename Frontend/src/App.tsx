@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import SmoothScroll from './components/SmoothScroll';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -41,6 +42,7 @@ function AppRoutes() {
 function App() {
   return (
     <ThemeProvider>
+      <SmoothScroll />
       <AuthProvider>
         <Router>
           <AppRoutes />

@@ -6,6 +6,7 @@ import Sidebar from './Sidebar';
 import Background from './Background';
 import ThemeToggle from './ThemeToggle';
 import { LogoMark } from './Logo';
+import { Magnetic, RouteProgress } from './fx';
 
 const NAMES: Record<string, string> = {
   dashboard: 'overview', applications: 'applications', environments: 'environments', deployments: 'deployments',
@@ -21,6 +22,7 @@ export default function Layout() {
   return (
     <div className="min-h-screen">
       <Background />
+      <RouteProgress routeKey={location.pathname} />
       <Sidebar open={open} onClose={() => setOpen(false)} />
 
       <div className="flex min-h-screen flex-col lg:pl-[276px]">
@@ -48,7 +50,7 @@ export default function Layout() {
               </AnimatePresence>
             </div>
 
-            <label className="ml-auto hidden h-10 w-full max-w-[18rem] items-center gap-2.5 rounded-full border border-line bg-surface px-4 text-fg-3 transition-colors focus-within:border-accent-text sm:flex">
+            <label className="ml-auto hidden h-10 w-full max-w-[18rem] items-center gap-2.5 rounded-full border border-line bg-surface px-4 text-fg-3 transition-colors focus-within:border-iris sm:flex">
               <Search className="h-4 w-4 shrink-0" strokeWidth={2} />
               <input type="text" placeholder="search anything…" className="w-full bg-transparent text-[0.875rem] font-medium text-fg placeholder:text-fg-3 focus:outline-none" />
               <kbd className="rounded-md border border-line px-1.5 py-0.5 font-mono text-[0.65rem] font-bold">⌘K</kbd>
@@ -58,12 +60,14 @@ export default function Layout() {
               <ThemeToggle />
               <button className="relative flex h-10 w-10 items-center justify-center rounded-full border border-line bg-surface text-fg-2 transition-colors hover:text-fg" aria-label="Notifications">
                 <Bell className="h-[18px] w-[18px]" strokeWidth={2} />
-                <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-coral ring-2 ring-[var(--surface-solid)]" />
+                <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-bad ring-2 ring-[var(--surface-solid)]" />
               </button>
-              <button className="btn btn-accent btn-shine">
-                <Plus className="h-4 w-4" strokeWidth={2.75} />
-                <span className="hidden sm:inline">deploy</span>
-              </button>
+              <Magnetic>
+                <button className="btn btn-primary">
+                  <Plus className="h-4 w-4" strokeWidth={2.5} />
+                  <span className="hidden sm:inline">deploy</span>
+                </button>
+              </Magnetic>
             </div>
           </div>
         </header>
@@ -73,10 +77,10 @@ export default function Layout() {
             <AnimatePresence mode="wait">
               <motion.div
                 key={location.pathname}
-                initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
-                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, y: -12, filter: 'blur(6px)' }}
-                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                initial={{ opacity: 0, y: 30, scale: 0.985, filter: 'blur(12px)' }}
+                animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: -16, scale: 0.99, filter: 'blur(8px)' }}
+                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
               >
                 {outlet}
               </motion.div>
