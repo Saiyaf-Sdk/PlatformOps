@@ -1,48 +1,56 @@
+import type { ElementType, ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Box, Server, Rocket, Activity, ShieldAlert, FileText, Users, LogOut, Settings, Terminal } from 'lucide-react';
+import {
+  LayoutGrid, Boxes, Layers, Rocket, Server, LineChart, Siren, ScrollText, Users, LogOut, Settings2, X,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import Logo from './Logo';
 
 interface NavItemProps {
   to: string;
-  icon: React.ElementType;
+  icon: ElementType;
   label: string;
+  badge?: string;
+  onNavigate?: () => void;
 }
 
-const NavItem = ({ to, icon: Icon, label }: NavItemProps) => (
+const NavItem = ({ to, icon: Icon, label, badge, onNavigate }: NavItemProps) => (
   <NavLink
     to={to}
+    onClick={onNavigate}
     className={({ isActive }) =>
-      `group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium ${
-        isActive
-          ? 'bg-[rgba(0,240,255,0.1)] text-[#00F0FF] border border-[rgba(0,240,255,0.2)] shadow-[0_0_18px_rgba(0,240,255,0.08)]'
-          : 'text-[#94A3B8] hover:bg-[rgba(255,255,255,0.04)] hover:text-white'
+      `group flex items-center gap-3 rounded-full pl-3 pr-2.5 h-10 text-[0.9rem] transition-colors ${
+        isActive ? 'bg-ink text-paper' : 'text-ink-2 hover:bg-card hover:text-ink'
       }`
     }
   >
-    <span className={`flex h-7 w-7 items-center justify-center rounded-lg ${
-      ({ isActive }: { isActive: boolean }) => isActive ? 'bg-[rgba(0,240,255,0.12)]' : 'bg-[rgba(255,255,255,0.02)] group-hover:bg-[rgba(255,255,255,0.05)]'
-    }`}>
-      <Icon className="w-4 h-4 shrink-0" />
-    </span>
-    <span>{label}</span>
+    {({ isActive }) => (
+      <>
+        <Icon className="h-[17px] w-[17px] shrink-0" strokeWidth={1.75} />
+        <span className="flex-1">{label}</span>
+        {badge && (
+          <span className={`chip h-5 px-2 text-[0.7rem] ${isActive ? 'bg-signal text-white' : 'bg-bad-soft text-bad'}`}>
+            {badge}
+          </span>
+        )}
+      </>
+    )}
   </NavLink>
 );
 
-interface SectionProps {
-  label: string;
-  children: React.ReactNode;
-}
-
-const Section = ({ label, children }: SectionProps) => (
+const Section = ({ label, children }: { label: string; children: ReactNode }) => (
   <div>
-    <p className="px-3 text-[10px] font-semibold text-[#475569] uppercase tracking-[0.22em] mb-2" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-      {label}
-    </p>
-    <div className="space-y-1">{children}</div>
+    <p className="px-3 mb-1.5 font-display italic text-[1.05rem] text-ink-3">{label}</p>
+    <div className="space-y-0.5">{children}</div>
   </div>
 );
 
-export default function Sidebar() {
+interface SidebarProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export default function Sidebar({ open, onClose }: SidebarProps) {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
 
@@ -52,83 +60,73 @@ export default function Sidebar() {
   };
 
   return (
-    <aside
-      className="w-64 h-screen flex flex-col fixed left-0 top-0 z-40"
-      style={{
-        background: 'rgba(11, 20, 35, 0.94)',
-        backdropFilter: 'blur(18px)',
-        borderRight: '1px solid rgba(148, 163, 184, 0.08)',
-        boxShadow: '0 0 0 1px rgba(0,240,255,0.04)',
-      }}
-    >
-      <div className="p-5 pb-4 border-b border-[rgba(148,163,184,0.08)]">
-        <div className="flex items-center gap-3">
-          <div className="relative p-2 rounded-xl bg-[rgba(0,240,255,0.09)] border border-[rgba(0,240,255,0.2)] shadow-[0_0_20px_rgba(0,240,255,0.08)]">
-            <Terminal className="w-5 h-5 text-[#00F0FF]" />
+    <>
+      {/* mobile scrim */}
+      <div
+        onClick={onClose}
+        className={`fixed inset-0 z-40 bg-ink/30 backdrop-blur-[2px] transition-opacity lg:hidden ${open ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+      />
+      <aside
+        className={`fixed left-0 top-0 z-50 flex h-screen w-[264px] flex-col border-r border-line bg-paper-2 transition-transform duration-300 lg:translate-x-0 ${
+          open ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex items-center justify-between px-5 pt-6 pb-5">
+          <Logo />
+          <button onClick={onClose} className="rounded-full p-1.5 text-ink-2 hover:bg-card lg:hidden" aria-label="Close menu">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4">
+          <div className="space-y-0.5">
+            <NavItem to="/dashboard" icon={LayoutGrid} label="Overview" onNavigate={onClose} />
           </div>
-          <div>
-            <h1 className="text-lg font-bold text-white leading-none">
-              Platform<span className="text-[#00F0FF]">Ops</span>
-            </h1>
-            <p className="text-[10px] text-[#475569] mt-1" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-              SRE COMMAND
-            </p>
+          <Section label="Delivery">
+            <NavItem to="/applications" icon={Boxes} label="Applications" onNavigate={onClose} />
+            <NavItem to="/environments" icon={Layers} label="Environments" onNavigate={onClose} />
+            <NavItem to="/deployments" icon={Rocket} label="Deployments" onNavigate={onClose} />
+          </Section>
+          <Section label="Operations">
+            <NavItem to="/infrastructure" icon={Server} label="Infrastructure" onNavigate={onClose} />
+            <NavItem to="/monitoring" icon={LineChart} label="Monitoring" onNavigate={onClose} />
+            <NavItem to="/incidents" icon={Siren} label="Incidents" badge="2" onNavigate={onClose} />
+          </Section>
+          <Section label="Governance">
+            <NavItem to="/audit-logs" icon={ScrollText} label="Audit log" onNavigate={onClose} />
+            <NavItem to="/users" icon={Users} label="People & access" onNavigate={onClose} />
+          </Section>
+        </nav>
+
+        {/* status ticket */}
+        <div className="mx-3 mb-3 rounded-2xl border border-line bg-card p-3.5">
+          <div className="flex items-center gap-2 text-[0.8rem] text-ok">
+            <span className="live-dot" />
+            <span className="font-medium">All lines running</span>
+          </div>
+          <p className="mt-1 text-[0.78rem] text-ink-3">
+            Uptime <span className="num font-mono text-ink-2">99.98%</span> · ap-south-1
+          </p>
+        </div>
+
+        <div className="border-t border-line px-3 py-3">
+          <div className="flex items-center gap-3 px-1.5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-signal-soft font-display text-lg text-signal">
+              {user?.name?.charAt(0) ?? 'A'}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[0.875rem] font-medium">{user?.name ?? 'Admin'}</p>
+              <p className="truncate text-[0.75rem] text-ink-3">DevOps admin</p>
+            </div>
+            <button className="rounded-full p-2 text-ink-3 hover:bg-card hover:text-ink" aria-label="Settings">
+              <Settings2 className="h-4 w-4" />
+            </button>
+            <button onClick={handleLogout} className="rounded-full p-2 text-ink-3 hover:bg-bad-soft hover:text-bad" aria-label="Sign out">
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
         </div>
-      </div>
-
-      <div className="px-4 py-3 border-b border-[rgba(148,163,184,0.08)]">
-        <div className="flex items-center justify-between rounded-lg border border-[rgba(0,255,163,0.14)] bg-[rgba(0,255,163,0.04)] px-2.5 py-1.5 text-[10px] text-[#00FFA3]" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-          <span className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#00FFA3] animate-pulse" />
-            SYSTEM ONLINE
-          </span>
-          <span>99.98%</span>
-        </div>
-      </div>
-
-      <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
-        <Section label="Overview">
-          <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" />
-        </Section>
-        <Section label="Platform">
-          <NavItem to="/applications" icon={Box} label="Applications" />
-          <NavItem to="/environments" icon={Server} label="Environments" />
-          <NavItem to="/deployments" icon={Rocket} label="Deployments" />
-        </Section>
-        <Section label="Operations">
-          <NavItem to="/infrastructure" icon={Server} label="Infrastructure" />
-          <NavItem to="/monitoring" icon={Activity} label="Monitoring" />
-          <NavItem to="/incidents" icon={ShieldAlert} label="Incidents" />
-        </Section>
-        <Section label="Governance">
-          <NavItem to="/audit-logs" icon={FileText} label="Audit Logs" />
-        </Section>
-        <Section label="Administration">
-          <NavItem to="/users" icon={Users} label="Users" />
-        </Section>
-      </nav>
-
-      <div className="p-3 border-t border-[rgba(148,163,184,0.08)]">
-        <div className="flex items-center gap-3 p-2.5 rounded-xl mb-2 bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.04)]">
-          <div className="w-9 h-9 rounded-lg bg-[rgba(123,44,191,0.2)] border border-[rgba(123,44,191,0.35)] flex items-center justify-center text-[#c084fc] font-bold text-xs shrink-0">
-            {user?.name?.charAt(0) || 'A'}
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-white truncate">{user?.name || 'Admin'}</p>
-            <p className="text-[10px] text-[#475569] truncate" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{user?.role || 'DEVOPS_ADMIN'}</p>
-          </div>
-        </div>
-        <button className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-[#94A3B8] hover:text-white hover:bg-[rgba(255,255,255,0.04)] rounded-lg transition-colors">
-          <Settings className="w-4 h-4" /> Settings
-        </button>
-        <button
-          onClick={handleLogout}
-          className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-[#FF3366] hover:bg-[rgba(255,51,102,0.08)] rounded-lg transition-colors mt-1"
-        >
-          <LogOut className="w-4 h-4" /> Logout
-        </button>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }

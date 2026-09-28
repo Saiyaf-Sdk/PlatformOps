@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 
 interface User {
@@ -17,16 +17,14 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    const token = localStorage.getItem('platform_token');
-    if (token) {
-      setIsAuthenticated(true);
-      setUser({ name: 'Admin User', role: 'DEVOPS_ADMIN' });
-    }
-  }, []);
+  // Read the stored token synchronously so a page refresh doesn't bounce to /login
+  const hasToken = () => {
+    try { return Boolean(localStorage.getItem('platform_token')); } catch { return false; }
+  };
+  const [isAuthenticated, setIsAuthenticated] = useState(hasToken);
+  const [user, setUser] = useState<User | null>(() =>
+    hasToken() ? { name: 'Admin User', role: 'DEVOPS_ADMIN' } : null,
+  );
 
   const login = (email: string, _password: string) => {
     localStorage.setItem('platform_token', 'mock-jwt-token');

@@ -1,70 +1,51 @@
+import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
+import { Bell, Search, Plus, Menu } from 'lucide-react';
 import Sidebar from './Sidebar';
-import { Bell, Search, Plus, ArrowUpRight } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { LogoMark } from './Logo';
 
 export default function Layout() {
-  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
 
   return (
-    <div className="app-shell flex" style={{ background: 'rgba(5, 11, 20, 0.5)' }}>
-      <Sidebar />
-      <div className="flex-1 flex flex-col min-h-screen" style={{ marginLeft: '256px' }}>
-        <header
-          className="sticky top-0 z-30 border-b border-[rgba(148,163,184,0.08)] px-6 py-3"
-          style={{
-            background: 'rgba(11, 20, 35, 0.72)',
-            backdropFilter: 'blur(18px)',
-            WebkitBackdropFilter: 'blur(18px)',
-          }}
-        >
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 flex-1">
-              <div className="flex items-center gap-2 rounded-xl border border-[rgba(148,163,184,0.12)] bg-[rgba(5,11,20,0.62)] px-3 py-2.5 w-full max-w-md">
-                <Search className="w-4 h-4 text-[#64748b] shrink-0" />
-                <input
-                  type="text"
-                  placeholder="Search resources..."
-                  className="bg-transparent border-none text-sm text-white focus:outline-none w-full placeholder-[#64748b]"
-                />
-              </div>
-            </div>
+    <div className="min-h-screen">
+      <Sidebar open={open} onClose={() => setOpen(false)} />
 
-            <div className="flex items-center gap-3">
-              <button className="inline-flex items-center gap-2 rounded-xl border border-[rgba(0,240,255,0.22)] bg-[rgba(0,240,255,0.08)] px-3 py-2 text-sm font-medium text-[#00F0FF] hover:bg-[rgba(0,240,255,0.12)] transition-colors">
-                <Plus className="w-4 h-4" />
-                New deployment
+      <div className="flex min-h-screen flex-col lg:pl-[264px]">
+        <header className="sticky top-0 z-30 border-b border-line bg-paper/85 backdrop-blur-md">
+          <div className="flex h-16 items-center gap-3 px-4 sm:px-8">
+            <button onClick={() => setOpen(true)} className="-ml-1 rounded-full p-2 text-ink-2 hover:bg-card lg:hidden" aria-label="Open menu">
+              <Menu className="h-5 w-5" />
+            </button>
+            <LogoMark className="h-7 w-7 lg:hidden" />
+
+            <label className="group ml-1 hidden h-10 w-full max-w-sm items-center gap-2.5 rounded-full border border-line-2 bg-card px-4 text-ink-3 focus-within:border-ink sm:flex">
+              <Search className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+              <input
+                type="text"
+                placeholder="Search services, releases, people"
+                className="w-full bg-transparent text-[0.9rem] text-ink placeholder:text-ink-3 focus:outline-none"
+              />
+              <kbd className="hidden rounded-md border border-line bg-paper px-1.5 py-0.5 font-mono text-[0.7rem] text-ink-3 md:block">⌘K</kbd>
+            </label>
+
+            <div className="ml-auto flex items-center gap-2">
+              <button className="relative rounded-full p-2.5 text-ink-2 hover:bg-card hover:text-ink" aria-label="Notifications">
+                <Bell className="h-[18px] w-[18px]" strokeWidth={1.75} />
+                <span className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-paper bg-signal" />
               </button>
-              <button className="relative p-2.5 rounded-xl text-[#94A3B8] hover:text-white hover:bg-[rgba(255,255,255,0.04)] transition-colors border border-[rgba(148,163,184,0.08)]">
-                <Bell className="w-4 h-4" />
-                <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-[#FF3366] animate-pulse" />
+              <button className="btn btn-ink">
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">New deployment</span>
               </button>
-              <div className="h-8 w-px bg-[rgba(148,163,184,0.12)]" />
-              <div className="flex items-center gap-3 rounded-xl border border-[rgba(148,163,184,0.08)] bg-[rgba(255,255,255,0.02)] px-2.5 py-1.5">
-                <div
-                  className="flex h-9 w-9 items-center justify-center rounded-lg text-sm font-bold"
-                  style={{
-                    background: 'rgba(123, 44, 191, 0.2)',
-                    border: '1px solid rgba(123, 44, 191, 0.4)',
-                    color: '#d8b4fe',
-                  }}
-                >
-                  {user?.name?.charAt(0) || 'A'}
-                </div>
-                <div className="hidden md:block">
-                  <p className="text-sm font-medium text-white leading-none">{user?.name || 'Admin'}</p>
-                  <p className="text-[10px] text-[#475569] mt-1" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                    {user?.role || 'SRE_ADMIN'}
-                  </p>
-                </div>
-                <ArrowUpRight className="hidden md:block w-4 h-4 text-[#64748b]" />
-              </div>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 p-6 overflow-y-auto">
-          <Outlet />
+        <main className="flex-1 px-4 py-8 sm:px-8 sm:py-10">
+          <div className="mx-auto max-w-[1240px]">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

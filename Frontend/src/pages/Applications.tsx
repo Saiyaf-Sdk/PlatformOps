@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Search, Filter, Server, Circle, GitBranch, User, ExternalLink, Boxes } from 'lucide-react';
+import { Plus, Search, GitBranch, ArrowUpRight } from 'lucide-react';
 
 interface App {
   id: number;
@@ -23,156 +23,182 @@ const APPS: App[] = [
   { id: 6, name: 'analytics-engine', description: 'Real-time metrics aggregation', runtime: 'Python 3.11', owner: 'Data Team', repo: 'org/analytics-engine', version: 'v1.0.0', status: 'HEALTHY', lastDeploy: '5h ago' },
 ];
 
-const STATUS_CONFIG = {
-  HEALTHY: { color: '#00FFA3', bg: 'rgba(0,255,163,0.08)', border: 'rgba(0,255,163,0.2)' },
-  WARNING: { color: '#FFB800', bg: 'rgba(255,184,0,0.08)', border: 'rgba(255,184,0,0.2)' },
-  CRITICAL: { color: '#FF3366', bg: 'rgba(255,51,102,0.08)', border: 'rgba(255,51,102,0.2)' },
-};
+const STATUS = {
+  HEALTHY: { label: 'Healthy', cls: 'text-ok', soft: 'bg-ok-soft text-ok' },
+  WARNING: { label: 'Degraded', cls: 'text-warn', soft: 'bg-warn-soft text-warn' },
+  CRITICAL: { label: 'Failing', cls: 'text-bad', soft: 'bg-bad-soft text-bad' },
+} as const;
 
-const StatusBadge = ({ status }: { status: App['status'] }) => {
-  const cfg = STATUS_CONFIG[status];
-  return (
-    <span
-      className="flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em]"
-      style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.color, fontFamily: 'JetBrains Mono, monospace' }}
-    >
-      <Circle className="h-1.5 w-1.5 fill-current" />
-      {status}
-    </span>
-  );
-};
+const RUNTIMES = [
+  { key: 'ALL', label: 'All runtimes' },
+  { key: 'java', label: 'Java' },
+  { key: 'go', label: 'Go' },
+  { key: 'python', label: 'Python' },
+  { key: 'node', label: 'Node' },
+];
+
+function monogram(runtime: string) {
+  const r = runtime.toLowerCase();
+  if (r.startsWith('java')) return { t: 'Jv', bg: 'var(--signal-soft)', fg: 'var(--signal)' };
+  if (r.startsWith('go')) return { t: 'Go', bg: 'var(--cobalt-soft)', fg: 'var(--cobalt)' };
+  if (r.startsWith('python')) return { t: 'Py', bg: 'var(--warn-soft)', fg: 'var(--warn)' };
+  return { t: 'Js', bg: 'var(--ok-soft)', fg: 'var(--ok)' };
+}
+
+const ease = [0.22, 1, 0.36, 1] as const;
 
 export default function Applications() {
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
-  const [runtimeFilter, setRuntimeFilter] = useState('ALL');
+  const [status, setStatus] = useState<'ALL' | App['status']>('ALL');
+  const [runtime, setRuntime] = useState('ALL');
 
-  const filtered = APPS.filter(app => {
-    const matchSearch = app.name.toLowerCase().includes(search.toLowerCase()) ||
-      app.owner.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === 'ALL' || app.status === statusFilter;
-    const matchRuntime = runtimeFilter === 'ALL' || app.runtime.toLowerCase().includes(runtimeFilter.toLowerCase());
+  const counts = useMemo(() => ({
+    ALL: APPS.length,
+    HEALTHY: APPS.filter((a) => a.status === 'HEALTHY').length,
+    WARNING: APPS.filter((a) => a.status === 'WARNING').length,
+    CRITICAL: APPS.filter((a) => a.status === 'CRITICAL').length,
+  }), []);
+
+  const filtered = APPS.filter((app) => {
+    const q = search.toLowerCase();
+    const matchSearch = app.name.toLowerCase().includes(q) || app.owner.toLowerCase().includes(q);
+    const matchStatus = status === 'ALL' || app.status === status;
+    const matchRuntime = runtime === 'ALL' || app.runtime.toLowerCase().includes(runtime);
     return matchSearch && matchStatus && matchRuntime;
   });
 
-  return (
-    <div className="space-y-6">
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#00F0FF]" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-            Catalog
-          </p>
-          <h1 className="text-3xl font-bold text-white">Application catalog</h1>
-          <p className="mt-1 text-sm text-[#94A3B8]">{APPS.length} services registered across the platform</p>
-        </div>
-        <button
-          className="inline-flex items-center gap-2 rounded-xl border border-[rgba(0,240,255,0.25)] bg-[rgba(0,240,255,0.08)] px-4 py-2.5 text-sm font-semibold text-[#00F0FF] shadow-[0_0_20px_rgba(0,240,255,0.08)] transition-all hover:bg-[rgba(0,240,255,0.12)]"
-        >
-          <Plus className="w-4 h-4" /> Register application
-        </button>
-      </motion.div>
+  const tabs: { key: 'ALL' | App['status']; label: string }[] = [
+    { key: 'ALL', label: 'All' },
+    { key: 'HEALTHY', label: 'Healthy' },
+    { key: 'WARNING', label: 'Degraded' },
+    { key: 'CRITICAL', label: 'Failing' },
+  ];
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="flex flex-wrap gap-3 rounded-2xl border border-[rgba(148,163,184,0.08)] bg-[rgba(11,20,35,0.8)] p-4"
+  return (
+    <div className="space-y-8">
+      <motion.header
+        initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease }}
+        className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between"
       >
-        <div className="relative min-w-[220px] flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#475569] w-4 h-4" />
+        <div>
+          <p className="text-[0.9rem] text-ink-3">Service catalogue</p>
+          <h1 className="mt-2 font-display text-[clamp(2.5rem,5vw,3.75rem)] leading-none tracking-[-0.02em]">
+            Applications <em className="text-ink-3 num">({APPS.length})</em>
+          </h1>
+          <p className="mt-3 max-w-lg text-[0.95rem] text-ink-2">
+            Every service on the platform, who owns it, and how it is doing.
+          </p>
+        </div>
+        <button className="btn btn-ink self-start md:self-auto">
+          <Plus className="h-4 w-4" /> Register application
+        </button>
+      </motion.header>
+
+      {/* ── Filters ─────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.05, ease }}
+        className="flex flex-col gap-3 lg:flex-row lg:items-center"
+      >
+        <div className="flex w-full items-center gap-1 overflow-x-auto rounded-full border border-line-2 bg-card p-1 lg:w-auto">
+          {tabs.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setStatus(t.key)}
+              className={`flex h-8 shrink-0 items-center gap-2 rounded-full px-3.5 text-[0.85rem] transition-colors ${
+                status === t.key ? 'bg-ink text-paper' : 'text-ink-2 hover:text-ink'
+              }`}
+            >
+              {t.label}
+              <span className={`num text-[0.75rem] ${status === t.key ? 'text-paper/60' : 'text-ink-3'}`}>{counts[t.key]}</span>
+            </button>
+          ))}
+        </div>
+
+        <select
+          value={runtime}
+          onChange={(e) => setRuntime(e.target.value)}
+          className="field h-10 w-full cursor-pointer appearance-none rounded-full bg-[length:16px] bg-[right_14px_center] bg-no-repeat pr-10 text-[0.875rem] lg:w-44"
+          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238f897c' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")" }}
+        >
+          {RUNTIMES.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
+        </select>
+
+        <label className="flex h-10 w-full items-center gap-2.5 rounded-full border border-line-2 bg-card px-4 text-ink-3 focus-within:border-ink lg:ml-auto lg:max-w-xs">
+          <Search className="h-4 w-4 shrink-0" strokeWidth={1.75} />
           <input
             type="text"
-            placeholder="Search by name or owner..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="platform-input pl-9"
-            style={{ paddingTop: '0.6rem', paddingBottom: '0.6rem' }}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Filter by name or team"
+            className="w-full bg-transparent text-[0.9rem] text-ink placeholder:text-ink-3 focus:outline-none"
           />
-        </div>
-        <select
-          value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value)}
-          className="platform-input px-3"
-          style={{ width: 'auto', minWidth: '140px', paddingTop: '0.6rem', paddingBottom: '0.6rem' }}
-        >
-          <option value="ALL">All statuses</option>
-          <option value="HEALTHY">Healthy</option>
-          <option value="WARNING">Warning</option>
-          <option value="CRITICAL">Critical</option>
-        </select>
-        <select
-          value={runtimeFilter}
-          onChange={e => setRuntimeFilter(e.target.value)}
-          className="platform-input px-3"
-          style={{ width: 'auto', minWidth: '140px', paddingTop: '0.6rem', paddingBottom: '0.6rem' }}
-        >
-          <option value="ALL">All runtimes</option>
-          <option value="java">Java</option>
-          <option value="go">Go</option>
-          <option value="python">Python</option>
-          <option value="node">Node</option>
-        </select>
-        <button className="inline-flex items-center gap-2 rounded-xl border border-[rgba(148,163,184,0.08)] bg-[rgba(255,255,255,0.02)] px-3 py-2 text-sm text-[#94A3B8] transition-colors hover:text-white">
-          <Filter className="w-4 h-4" /> More filters
-        </button>
+        </label>
       </motion.div>
 
+      {/* ── Grid ────────────────────────────── */}
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center">
-          <Boxes className="mb-4 h-12 w-12 text-[#475569]" />
-          <p className="mb-1 text-lg font-semibold text-white">No applications found</p>
-          <p className="text-sm text-[#94A3B8]">Try adjusting your search or filters.</p>
+        <div className="card flex flex-col items-center justify-center px-6 py-24 text-center">
+          <p className="font-display text-[2.25rem] leading-none">Nothing on this line.</p>
+          <p className="mt-3 text-[0.95rem] text-ink-3">Try another search, or clear the filters.</p>
+          <button
+            onClick={() => { setSearch(''); setStatus('ALL'); setRuntime('ALL'); }}
+            className="btn btn-ghost mt-6"
+          >
+            Clear filters
+          </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((app, i) => (
-            <motion.div
-              key={app.id}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className="group rounded-2xl border border-[rgba(148,163,184,0.08)] bg-[rgba(17,29,49,0.82)] p-5 transition-all duration-200 hover:border-[rgba(0,240,255,0.26)] hover:shadow-[0_18px_40px_rgba(0,240,255,0.06)]"
-            >
-              <div className="mb-4 flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="truncate text-base font-semibold text-white transition-colors group-hover:text-[#00F0FF]">{app.name}</h3>
-                    <ExternalLink className="h-3.5 w-3.5 shrink-0 text-[#475569] opacity-0 transition-opacity group-hover:opacity-100" />
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {filtered.map((app, i) => {
+            const m = monogram(app.runtime);
+            const s = STATUS[app.status];
+            return (
+              <motion.article
+                key={app.id}
+                initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.08 + i * 0.04, ease }}
+                className="card group flex cursor-pointer flex-col p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-line-2 hover:shadow-[var(--shadow-md)]"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div
+                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl font-display text-[1.5rem] italic"
+                    style={{ background: m.bg, color: m.fg }}
+                  >
+                    {m.t}
                   </div>
-                  <p className="mt-1 truncate text-xs text-[#94A3B8]">{app.description}</p>
+                  <span className={`chip ${s.soft}`}>
+                    {app.status === 'CRITICAL' ? <span className="live-dot" /> : <i className="h-1.5 w-1.5 rounded-full bg-current" />}
+                    {s.label}
+                  </span>
                 </div>
-                <StatusBadge status={app.status} />
-              </div>
 
-              <div className="mb-4">
-                <span
-                  className="rounded-lg border border-[rgba(0,240,255,0.12)] bg-[rgba(0,240,255,0.05)] px-2 py-1 text-[10px] text-[#00F0FF]"
-                  style={{ fontFamily: 'JetBrains Mono, monospace' }}
-                >
-                  {app.runtime}
-                </span>
-              </div>
+                <h3 className="mt-5 flex items-center gap-1.5 text-[1.1rem] font-medium">
+                  {app.name}
+                  <ArrowUpRight className="h-4 w-4 text-ink-3 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100" />
+                </h3>
+                <p className="mt-1.5 text-[0.9rem] leading-relaxed text-ink-2">{app.description}</p>
 
-              <div className="space-y-2 border-t border-[rgba(255,255,255,0.05)] pt-3 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-xs text-[#94A3B8]"><User className="w-3.5 h-3.5" /> Owner</span>
-                  <span className="text-xs font-medium text-white">{app.owner}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-xs text-[#94A3B8]"><GitBranch className="w-3.5 h-3.5" /> Repo</span>
-                  <span className="text-xs text-[#00F0FF]" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{app.repo}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-xs text-[#94A3B8]"><Server className="w-3.5 h-3.5" /> Runtime</span>
-                  <span className="text-xs font-medium text-white" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{app.version}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-[#94A3B8]">Last deploy</span>
-                  <span className="text-xs text-[#64748b]">{app.lastDeploy}</span>
-                </div>
-              </div>
-            </motion.div>
-          ))}
+                <p className="mt-4 flex items-center gap-1.5 font-mono text-[0.78rem] text-ink-3">
+                  <GitBranch className="h-3.5 w-3.5" /> {app.repo}
+                </p>
+
+                <dl className="mt-5 grid grid-cols-3 gap-3 border-t border-line pt-4 text-[0.8rem]">
+                  <div>
+                    <dt className="text-ink-3">Team</dt>
+                    <dd className="mt-0.5 truncate font-medium">{app.owner}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-ink-3">Version</dt>
+                    <dd className="mt-0.5 font-mono">{app.version}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-ink-3">Deployed</dt>
+                    <dd className="mt-0.5">{app.lastDeploy}</dd>
+                  </div>
+                </dl>
+                <p className="mt-3 text-[0.78rem] text-ink-3">{app.runtime}</p>
+              </motion.article>
+            );
+          })}
         </div>
       )}
     </div>
