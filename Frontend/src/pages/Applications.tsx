@@ -1,19 +1,17 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Search, Filter, Server, Circle, GitBranch, User, ExternalLink, Box } from 'lucide-react';
-
-interface App {
-  id: number;
-  name: string;
-  description: string;
-  runtime: string;
-  owner: string;
-  repo: string;
-  version: string;
-  status: 'HEALTHY' | 'WARNING' | 'CRITICAL';
-  lastDeploy: string;
-}
+import { Plus, Search, Server, GitBranch, User, ExternalLink } from 'lucide-react';
+import { useApplications, useCreateApplication, type NewApplication } from '../lib/queries';
+import type { AppStatus } from '../lib/types';
+import { errorMessage, problemOf } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/Toaster';
+import { Modal, Field, Input, Select, Segmented, Spinner, EmptyState, ErrorState, Skeleton } from '../components/ui';
+import { Magnetic, RevealWords } from '../components/fx';
+import { rise } from '../components/motion';
+import { AppStatusChip } from '../components/badges';
+import DeployModal from '../components/DeployModal';
 
 const RUNTIMES = [
   { key: 'ALL', label: 'all runtimes' },
@@ -23,16 +21,7 @@ const RUNTIMES = [
   { key: 'node', label: 'Node' },
 ];
 
-function monogram(runtime: string) {
-  const r = runtime.toLowerCase();
-  if (r.startsWith('java')) return { t: 'JV', c: 'var(--lilac)' };
-  if (r.startsWith('go')) return { t: 'GO', c: 'var(--iris)' };
-  if (r.startsWith('python')) return { t: 'PY', c: 'var(--amber)' };
-  if (r.startsWith('node')) return { t: 'JS', c: 'var(--ok)' };
-  return { t: runtime.slice(0, 2).toUpperCase(), c: 'var(--sky)' };
-}
-
-type Filter = 'ALL' | AppStatus;
+type StatusFilter = 'ALL' | AppStatus;
 const NAME_RULE = /^[a-z]([-a-z0-9]{0,61}[a-z0-9])?$/;
 const REPO_RULE = /^(https:\/\/[\w.-]+\/[\w.-]+\/[\w.-]+(\.git)?|[\w.-]+\/[\w.-]+)$/;
 
@@ -103,10 +92,13 @@ function RegisterModal({ open, onClose }: { open: boolean; onClose: () => void }
 export default function Applications() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<Filter>('ALL');
+  const [status, setStatus] = useState<StatusFilter>('ALL');
   const [runtime, setRuntime] = useState('ALL');
   const [registerOpen, setRegisterOpen] = useState(false);
   const [deployFor, setDeployFor] = useState<number | null>(null);
+
+  const { can } = useAuth();
+  const { data, isLoading, isError, error, refetch } = useApplications();
 
   const apps = useMemo(() => data?.content ?? [], [data]);
   const counts = useMemo(() => ({
@@ -198,7 +190,7 @@ export default function Applications() {
                   </div>
                   <p className="text-[#94A3B8] text-xs mt-0.5 truncate">{app.description}</p>
                 </div>
-                <StatusBadge status={app.status} />
+                <AppStatusChip status={app.status} />
               </div>
 
               {/* Runtime pill */}
@@ -215,19 +207,19 @@ export default function Applications() {
               <div className="space-y-2 pt-3 border-t border-[rgba(255,255,255,0.05)] text-sm">
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-1.5 text-[#94A3B8] text-xs"><User className="w-3 h-3" /> Owner</span>
-                  <span className="text-white text-xs font-medium">{app.owner}</span>
+                  <span className="text-white text-xs font-medium">{app.ownerTeam}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-1.5 text-[#94A3B8] text-xs"><GitBranch className="w-3 h-3" /> Repository</span>
-                  <span className="text-[#00F0FF] text-xs" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{app.repo}</span>
+                  <span className="text-[#00F0FF] text-xs" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{app.repoUrl}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-1.5 text-[#94A3B8] text-xs"><Server className="w-3 h-3" /> Production</span>
-                  <span className="text-white text-xs font-medium" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{app.version}</span>
+                  <span className="text-white text-xs font-medium" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{app.currentVersion ?? '—'}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[#94A3B8] text-xs">Last Deploy</span>
-                  <span className="text-[#475569] text-xs">{app.lastDeploy}</span>
+                  <span className="text-[#475569] text-xs">{app.lastDeployedAt ?? '—'}</span>
                 </div>
               </div>
             </motion.div>

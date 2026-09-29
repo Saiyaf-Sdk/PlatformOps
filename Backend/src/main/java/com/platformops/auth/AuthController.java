@@ -37,6 +37,12 @@ public class AuthController {
         return auth.login(req);
     }
 
+    @Operation(summary = "Create a new user account and immediately sign in")
+    @PostMapping("/signup")
+    public TokenResponse signup(@Valid @RequestBody com.platformops.auth.AuthDtos.SignupRequest req) {
+        return auth.signup(req);
+    }
+
     @Operation(summary = "Exchange a refresh token for a new token pair (the old refresh token is revoked)")
     @PostMapping("/refresh")
     public TokenResponse refresh(@Valid @RequestBody RefreshRequest req) {

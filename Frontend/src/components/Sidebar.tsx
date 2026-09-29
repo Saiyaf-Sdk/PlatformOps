@@ -1,6 +1,7 @@
 import type { ElementType, ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Box, Server, Rocket, Activity, ShieldAlert, FileText, Users, LogOut, Settings, Terminal, ClipboardList } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Server, Rocket, Activity, Users, LogOut, LayoutGrid, Boxes, Layers, Siren, ScrollText, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useDashboard } from '../lib/queries';
 import { ROLE_LABEL, initials } from '../lib/format';
@@ -47,7 +48,6 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
   const navigate = useNavigate();
   const { data: dash } = useDashboard();
   const openIncidents = dash?.kpis.openIncidents ?? 0;
-  const uptime = dash ? (dash.environments.find((e) => e.code === 'PRODUCTION')?.healthScore ?? 100) : null;
 
   return (
     <>
@@ -84,30 +84,6 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
             {can('ADMIN') && <NavItem to="/users" icon={Users} label="people & access" onNavigate={onClose} />}
           </Section>
         </nav>
-
-      {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
-        <Section label="Overview">
-          <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" />
-        </Section>
-        <Section label="Platform">
-          <NavItem to="/applications" icon={Box} label="Applications" />
-          <NavItem to="/environments" icon={Server} label="Environments" />
-          <NavItem to="/deployments" icon={Rocket} label="Deployments" />
-        </Section>
-        <Section label="Operations">
-          <NavItem to="/infrastructure" icon={Server} label="Infrastructure" />
-          <NavItem to="/infrastructure-requests" icon={ClipboardList} label="Infrastructure Requests" />
-          <NavItem to="/monitoring" icon={Activity} label="Monitoring" />
-          <NavItem to="/incidents" icon={ShieldAlert} label="Incidents" />
-        </Section>
-        <Section label="Governance">
-          <NavItem to="/audit-logs" icon={FileText} label="Audit Logs" />
-        </Section>
-        <Section label="Administration">
-          <NavItem to="/users" icon={Users} label="Users" />
-        </Section>
-      </nav>
 
         <div className="flex items-center gap-3 border-t border-line px-4 py-3.5">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky via-iris to-lilac font-display text-base font-extrabold text-white">

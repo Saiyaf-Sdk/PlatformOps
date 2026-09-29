@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { motion } from 'framer-motion';
-import { ArrowRight, Eye, EyeOff, KeyRound } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Logo from '../components/Logo';
 import ReleaseLine from '../components/ReleaseLine';
@@ -15,12 +15,13 @@ import { Magnetic, RevealWords, SpotPanel } from '../components/fx';
 import { ease } from '../components/motion';
 import { errorMessage } from '../lib/api';
 
-const loginSchema = z.object({
+const signupSchema = z.object({
+  fullName: z.string().min(2, 'at least 2 characters'),
   email: z.string().email('that doesn’t look like an email'),
   password: z.string().min(6, 'use at least 6 characters'),
   remember: z.boolean().optional(),
 });
-type LoginForm = z.infer<typeof loginSchema>;
+type SignupForm = z.infer<typeof signupSchema>;
 
 const TICKER = [
   { app: 'auth-service', v: 'v3.2.1', env: 'PROD', ok: true },
@@ -39,22 +40,22 @@ const isFirstVisit = () => {
   } catch { return false; }
 };
 
-export default function Login() {
-  const { login, isAuthenticated } = useAuth();
+export default function Signup() {
+  const { signup, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [showPw, setShowPw] = useState(false);
   const [D] = useState(() => (isFirstVisit() ? 1.7 : 0.1));
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
+  const { register, handleSubmit, formState: { errors } } = useForm<SignupForm>({ resolver: zodResolver(signupSchema) });
   const from = (location.state as { from?: string } | null)?.from ?? '/dashboard';
 
-  const onSubmit = async (data: LoginForm) => {
+  const onSubmit = async (data: SignupForm) => {
     setIsLoading(true);
     setFormError(null);
     try {
-      await login(data.email, data.password);
+      await signup(data.fullName, data.email, data.password);
       navigate(from, { replace: true });
     } catch (err) {
       setFormError(errorMessage(err));
@@ -62,19 +63,6 @@ export default function Login() {
     }
   };
 
-  const fillDemo = async () => {
-    setValue('email', 'admin@platformops.dev', { shouldValidate: true });
-    setValue('password', 'Admin@12345', { shouldValidate: true });
-    setIsLoading(true);
-    setFormError(null);
-    try {
-      await login('admin@platformops.dev', 'Admin@12345');
-      navigate(from, { replace: true });
-    } catch (err) {
-      setFormError(errorMessage(err));
-      setIsLoading(false);
-    }
-  };
 
   if (isAuthenticated) return <Navigate to={from} replace />;
 
@@ -133,13 +121,19 @@ export default function Login() {
           className="mx-auto w-full max-w-[440px]"
         >
           <SpotPanel beam className="p-7 sm:p-9">
-            <p className="tag">Sign in</p>
+            <p className="tag">Sign up</p>
             <h2 className="mt-3 font-display text-[2.6rem] font-extrabold leading-none">
-              welcome <span className="grad">BACK</span>
+              create <span className="grad">ACCOUNT</span>
             </h2>
-            <p className="mt-3 text-[0.95rem] font-medium text-fg-2">Step into the control room.</p>
+            <p className="mt-3 text-[0.95rem] font-medium text-fg-2">Join the control room.</p>
 
             <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5" noValidate>
+              <div>
+                <label htmlFor="fullName" className="tag mb-2 block">Full name</label>
+                <input id="fullName" {...register('fullName')} className="field" placeholder="Jane Doe" autoComplete="name" />
+                {errors.fullName && <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="mt-1.5 text-[0.8rem] font-semibold text-bad">{errors.fullName.message}</motion.p>}
+              </div>
+
               <div>
                 <label htmlFor="email" className="tag mb-2 block">Work email</label>
                 <input id="email" {...register('email')} className="field" placeholder="you@company.com" autoComplete="email" />
@@ -149,7 +143,6 @@ export default function Login() {
               <div>
                 <div className="mb-2 flex items-baseline justify-between">
                   <label htmlFor="password" className="tag">Password</label>
-                  <a href="#" className="text-[0.8rem] font-semibold text-fg-3 transition-colors hover:text-accent-text">forgot?</a>
                 </div>
                 <div className="relative">
                   <input id="password" type={showPw ? 'text' : 'password'} {...register('password')} className="field pr-12" placeholder="••••••••" autoComplete="current-password" />
@@ -187,14 +180,7 @@ export default function Login() {
             </form>
 
             <div className="my-6 flex items-center gap-4"><span className="h-px flex-1 bg-line" /><span className="tag">or</span><span className="h-px flex-1 bg-line" /></div>
-            {import.meta.env.VITE_HIDE_DEMO !== 'true' ? (
-              <button type="button" onClick={fillDemo} className="btn btn-ghost h-12 w-full"><KeyRound className="h-4 w-4" /> use the <b className="font-extrabold">DEMO</b> admin account</button>
-            ) : (
-              <button type="button" className="btn btn-ghost h-12 w-full"><KeyRound className="h-4 w-4" /> continue with SSO</button>
-            )}
-            <div className="mt-4 text-center">
-              <button type="button" onClick={() => navigate('/signup', { replace: true })} className="btn btn-ghost h-10 w-full text-[0.85rem]">no account? <b className="font-extrabold">SIGN UP</b></button>
-            </div>
+            <button type="button" onClick={() => navigate('/login', { replace: true })} className="btn btn-ghost h-12 w-full">already have an account? <b className="font-extrabold">SIGN IN</b></button>
           </SpotPanel>
         </motion.div>
       </div>

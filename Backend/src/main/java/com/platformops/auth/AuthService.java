@@ -2,12 +2,14 @@ package com.platformops.auth;
 
 import com.platformops.audit.AuditService;
 import com.platformops.auth.AuthDtos.LoginRequest;
+import com.platformops.auth.AuthDtos.SignupRequest;
 import com.platformops.auth.AuthDtos.TokenResponse;
 import com.platformops.common.ApiException;
 import com.platformops.common.RequestContext;
 import com.platformops.config.AppProperties;
 import com.platformops.security.JwtService;
 import com.platformops.security.LoginRateLimiter;
+import com.platformops.user.Role;
 import com.platformops.user.User;
 import com.platformops.user.UserDtos.UserResponse;
 import com.platformops.user.UserRepository;
@@ -96,6 +98,24 @@ public class AuthService {
         user.setLastLoginAt(now);
         user = users.save(user);
         audit.recordIndependent(user.getId(), user.getEmail(), "LOGIN", "USER", user.getId(), "Signed in");
+        return tokensFor(user);
+    }
+
+    public TokenResponse signup(SignupRequest req) {
+        String email = req.email().trim().toLowerCase(Locale.ROOT);
+        if (users.findByEmailIgnoreCase(email).isPresent()) {
+            throw ApiException.badRequest("email_taken", "That email is already in use.");
+        }
+        User user = new User();
+        user.setEmail(email);
+        user.setFullName(req.fullName().trim());
+        user.setPasswordHash(encoder.encode(req.password()));
+        user.setRole(Role.DEVELOPER);
+        user.setEnabled(true);
+        user.setFailedAttempts(0);
+        user = users.save(user);
+        
+        audit.recordIndependent(user.getId(), email, "SIGNUP", "USER", user.getId(), "Account created via signup");
         return tokensFor(user);
     }
 

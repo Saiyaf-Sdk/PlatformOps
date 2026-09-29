@@ -6,6 +6,7 @@ import { ToastProvider } from './components/Toaster';
 import SmoothScroll from './components/SmoothScroll';
 import Layout from './components/Layout';
 import Login from './pages/Login';
+import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import Applications from './pages/Applications';
 import { AuditLogs, Deployments, Environments, Incidents, Infrastructure, Monitoring, UsersPage } from './pages/PlatformPages';
@@ -18,15 +19,11 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   return <>{children}</>;
 };
 
-const RoleRoute = ({ roles, children }: { roles: Role[]; children: ReactNode }) => {
-  const { can } = useAuth();
-  return can(...roles) ? <>{children}</> : <Navigate to="/dashboard" replace />;
-};
-
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
