@@ -1,85 +1,89 @@
+import type { ElementType, ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Box, Server, Rocket, Activity, ShieldAlert, FileText, Users, LogOut, Settings, Terminal, ClipboardList } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useDashboard } from '../lib/queries';
+import { ROLE_LABEL, initials } from '../lib/format';
+import Logo from './Logo';
 
-interface NavItemProps {
-  to: string;
-  icon: React.ElementType;
-  label: string;
-}
+interface NavItemProps { to: string; icon: ElementType; label: string; badge?: string; onNavigate?: () => void }
 
-const NavItem = ({ to, icon: Icon, label }: NavItemProps) => (
-  <NavLink
-    to={to}
-    className={({ isActive }) =>
-      `flex items-center gap-3 px-3 py-2.5 rounded-md transition-all text-sm font-medium ${
-        isActive
-          ? 'bg-[rgba(0,240,255,0.1)] text-[#00F0FF] border-l-2 border-[#00F0FF] pl-[10px]'
-          : 'text-[#94A3B8] hover:bg-[rgba(255,255,255,0.04)] hover:text-white'
-      }`
-    }
-  >
-    <Icon className="w-4 h-4 shrink-0" />
-    <span>{label}</span>
+const NavItem = ({ to, icon: Icon, label, badge, onNavigate }: NavItemProps) => (
+  <NavLink to={to} onClick={onNavigate} className="relative block">
+    {({ isActive }) => (
+      <span className={`relative flex h-10 items-center gap-3 rounded-full pl-3.5 pr-2.5 text-[0.9rem] font-semibold transition-colors ${
+        isActive ? 'text-fg' : 'text-fg-2 hover:text-fg'
+      }`}>
+        {isActive && (
+          <motion.span
+            layoutId="nav-pill"
+            className="absolute inset-0 rounded-full border border-line-strong bg-surface-2 shadow-[0_8px_24px_-12px_var(--iris)]"
+            transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+          >
+            <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full" style={{ background: 'var(--grad)', boxShadow: '0 0 10px var(--iris)' }} />
+          </motion.span>
+        )}
+        <Icon className={`relative h-[17px] w-[17px] shrink-0 transition-colors ${isActive ? 'text-accent-text' : ''}`} strokeWidth={2} />
+        <span className="relative flex-1">{label}</span>
+        {badge && (
+          <span className={`relative flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 font-mono text-[0.68rem] font-bold ${
+            'bg-bad text-white shadow-[0_0_12px_var(--bad)]'
+          }`}>{badge}</span>
+        )}
+      </span>
+    )}
   </NavLink>
 );
 
-interface SectionProps {
-  label: string;
-  children: React.ReactNode;
-}
-
-const Section = ({ label, children }: SectionProps) => (
+const Section = ({ label, children }: { label: string; children: ReactNode }) => (
   <div>
-    <p className="px-3 text-[10px] font-semibold text-[#475569] uppercase tracking-widest mb-1" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-      {label}
-    </p>
+    <p className="tag mb-2 px-3.5">{label}</p>
     <div className="space-y-0.5">{children}</div>
   </div>
 );
 
-export default function Sidebar() {
-  const { logout, user } = useAuth();
+export default function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { logout, user, can } = useAuth();
   const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const { data: dash } = useDashboard();
+  const openIncidents = dash?.kpis.openIncidents ?? 0;
+  const uptime = dash ? (dash.environments.find((e) => e.code === 'PRODUCTION')?.healthScore ?? 100) : null;
 
   return (
-    <aside
-      className="w-64 h-screen flex flex-col fixed left-0 top-0 z-40"
-      style={{
-        background: 'rgba(11, 20, 35, 0.95)',
-        backdropFilter: 'blur(16px)',
-        borderRight: '1px solid rgba(0, 240, 255, 0.1)',
-      }}
-    >
-      {/* Logo */}
-      <div className="p-5 pb-4 border-b border-[rgba(0,240,255,0.08)]">
-        <div className="flex items-center gap-2.5">
-          <div className="p-1.5 rounded-md bg-[rgba(0,240,255,0.1)] border border-[rgba(0,240,255,0.2)]">
-            <Terminal className="w-5 h-5 text-[#00F0FF]" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-white leading-none">
-              Platform<span className="text-[#00F0FF]">Ops</span>
-            </h1>
-            <p className="text-[10px] text-[#475569] mt-0.5" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-              SRE Control Center
-            </p>
-          </div>
+    <>
+      <div
+        onClick={onClose}
+        className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity lg:hidden ${open ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+      />
+      <aside
+        className={`fixed inset-y-3 left-3 z-50 flex w-[252px] flex-col rounded-[26px] border border-line glass transition-transform duration-500 [transition-timing-function:cubic-bezier(.16,1,.3,1)] lg:translate-x-0 ${
+          open ? 'translate-x-0' : '-translate-x-[110%]'
+        }`}
+      >
+        <div className="flex items-center justify-between px-5 pb-6 pt-6">
+          <Logo />
+          <button onClick={onClose} className="rounded-full p-1.5 text-fg-2 hover:bg-surface-2 lg:hidden" aria-label="Close menu">
+            <X className="h-5 w-5" />
+          </button>
         </div>
-      </div>
 
-      {/* Status bar */}
-      <div className="px-4 py-2 border-b border-[rgba(0,240,255,0.05)]">
-        <div className="flex items-center gap-2 text-[11px] text-[#475569]" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-          <span className="w-1.5 h-1.5 rounded-full bg-[#00FFA3] animate-pulse shrink-0" />
-          ALL SYSTEMS NOMINAL
-        </div>
-      </div>
+        <nav data-lenis-prevent className="flex-1 space-y-6 overflow-y-auto px-3 pb-4">
+          <div><NavItem to="/dashboard" icon={LayoutGrid} label="overview" onNavigate={onClose} /></div>
+          <Section label="Delivery">
+            <NavItem to="/applications" icon={Boxes} label="applications" onNavigate={onClose} />
+            <NavItem to="/environments" icon={Layers} label="environments" onNavigate={onClose} />
+            <NavItem to="/deployments" icon={Rocket} label="deployments" onNavigate={onClose} />
+          </Section>
+          <Section label="Operations">
+            <NavItem to="/infrastructure" icon={Server} label="infrastructure" onNavigate={onClose} />
+            <NavItem to="/monitoring" icon={Activity} label="monitoring" onNavigate={onClose} />
+            <NavItem to="/incidents" icon={Siren} label="incidents" badge={openIncidents > 0 ? String(openIncidents) : undefined} onNavigate={onClose} />
+          </Section>
+          <Section label="Governance">
+            {can('ADMIN', 'DEVOPS') && <NavItem to="/audit-logs" icon={ScrollText} label="audit log" onNavigate={onClose} />}
+            {can('ADMIN') && <NavItem to="/users" icon={Users} label="people & access" onNavigate={onClose} />}
+          </Section>
+        </nav>
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
@@ -105,27 +109,23 @@ export default function Sidebar() {
         </Section>
       </nav>
 
-      {/* User footer */}
-      <div className="p-3 border-t border-[rgba(0,240,255,0.08)]">
-        <div className="flex items-center gap-3 p-2.5 rounded-lg mb-2 bg-[rgba(255,255,255,0.02)]">
-          <div className="w-8 h-8 rounded-lg bg-[rgba(123,44,191,0.3)] border border-[rgba(123,44,191,0.4)] flex items-center justify-center text-[#7B2CBF] font-bold text-xs shrink-0">
-            {user?.name?.charAt(0) || 'A'}
+        <div className="flex items-center gap-3 border-t border-line px-4 py-3.5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky via-iris to-lilac font-display text-base font-extrabold text-white">
+            {initials(user?.fullName)}
           </div>
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-white truncate">{user?.name || 'Admin'}</p>
-            <p className="text-[10px] text-[#475569] truncate" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{user?.role || 'DEVOPS_ADMIN'}</p>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[0.875rem] font-bold">{user?.fullName ?? ''}</p>
+            <p className="tag truncate !text-[0.6rem]">{user ? ROLE_LABEL[user.role] : ''}</p>
           </div>
+          <button
+            onClick={async () => { await logout(); navigate('/login'); }}
+            className="rounded-full p-2 text-fg-3 transition-colors hover:bg-surface-2 hover:text-bad"
+            aria-label="Sign out"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
-        <button className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-[#94A3B8] hover:text-white hover:bg-[rgba(255,255,255,0.04)] rounded-md transition-colors">
-          <Settings className="w-4 h-4" /> Settings
-        </button>
-        <button
-          onClick={handleLogout}
-          className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-[#FF3366] hover:bg-[rgba(255,51,102,0.08)] rounded-md transition-colors mt-0.5"
-        >
-          <LogOut className="w-4 h-4" /> Logout
-        </button>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }

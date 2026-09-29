@@ -1,0 +1,11 @@
+# Production profile: no demo data, strict secret check (see JwtProperties validation)
+app:
+  seed:
+    enabled: ${SEED_DEMO_DATA:false}
+  pipeline:
+    failure-rate: ${PIPELINE_FAILURE_RATE:0.0}
+springdoc:
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:false}

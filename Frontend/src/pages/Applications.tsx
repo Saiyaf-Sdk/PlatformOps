@@ -15,123 +15,153 @@ interface App {
   lastDeploy: string;
 }
 
-const APPS: App[] = [
-  { id: 1, name: 'payment-gateway', description: 'Core payment processing microservice', runtime: 'Java / Spring Boot', owner: 'Fintech Squad', repo: 'org/payment-gateway', version: 'v1.8.0', status: 'HEALTHY', lastDeploy: '2h ago' },
-  { id: 2, name: 'auth-service', description: 'JWT authentication & authorization', runtime: 'Go 1.21', owner: 'Platform Team', repo: 'org/auth-service', version: 'v3.2.1', status: 'HEALTHY', lastDeploy: '14m ago' },
-  { id: 3, name: 'frontend-dashboard', description: 'React SPA for customer portal', runtime: 'Node 20 / React', owner: 'Web Team', repo: 'org/frontend-dashboard', version: 'v5.1.2', status: 'WARNING', lastDeploy: '1h ago' },
-  { id: 4, name: 'inventory-worker', description: 'Async inventory sync worker', runtime: 'Python 3.11', owner: 'Data Team', repo: 'org/inventory-worker', version: 'v2.0.4', status: 'CRITICAL', lastDeploy: '31m ago' },
-  { id: 5, name: 'notification-svc', description: 'Multi-channel notification dispatcher', runtime: 'Node 20', owner: 'Platform Team', repo: 'org/notification-svc', version: 'v1.3.0', status: 'HEALTHY', lastDeploy: '3h ago' },
-  { id: 6, name: 'analytics-engine', description: 'Real-time metrics aggregation', runtime: 'Python 3.11', owner: 'Data Team', repo: 'org/analytics-engine', version: 'v1.0.0', status: 'HEALTHY', lastDeploy: '5h ago' },
+const RUNTIMES = [
+  { key: 'ALL', label: 'all runtimes' },
+  { key: 'java', label: 'Java' },
+  { key: 'go', label: 'Go' },
+  { key: 'python', label: 'Python' },
+  { key: 'node', label: 'Node' },
 ];
 
-const STATUS_CONFIG = {
-  HEALTHY: { color: '#00FFA3', bg: 'rgba(0,255,163,0.08)', border: 'rgba(0,255,163,0.2)' },
-  WARNING: { color: '#FFB800', bg: 'rgba(255,184,0,0.08)', border: 'rgba(255,184,0,0.2)' },
-  CRITICAL: { color: '#FF3366', bg: 'rgba(255,51,102,0.08)', border: 'rgba(255,51,102,0.2)' },
-};
+function monogram(runtime: string) {
+  const r = runtime.toLowerCase();
+  if (r.startsWith('java')) return { t: 'JV', c: 'var(--lilac)' };
+  if (r.startsWith('go')) return { t: 'GO', c: 'var(--iris)' };
+  if (r.startsWith('python')) return { t: 'PY', c: 'var(--amber)' };
+  if (r.startsWith('node')) return { t: 'JS', c: 'var(--ok)' };
+  return { t: runtime.slice(0, 2).toUpperCase(), c: 'var(--sky)' };
+}
 
-const StatusBadge = ({ status }: { status: App['status'] }) => {
-  const cfg = STATUS_CONFIG[status];
+type Filter = 'ALL' | AppStatus;
+const NAME_RULE = /^[a-z]([-a-z0-9]{0,61}[a-z0-9])?$/;
+const REPO_RULE = /^(https:\/\/[\w.-]+\/[\w.-]+\/[\w.-]+(\.git)?|[\w.-]+\/[\w.-]+)$/;
+
+function RegisterModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const create = useCreateApplication();
+  const toast = useToast();
+  const empty: NewApplication = { name: '', description: '', runtime: 'Java 21 / Spring Boot', ownerTeam: '', repoUrl: '' };
+  const [form, setForm] = useState<NewApplication>(empty);
+  const [touched, setTouched] = useState(false);
+  const set = (k: keyof NewApplication) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const server = create.error ? problemOf(create.error).errors ?? {} : {};
+  const errors: Partial<Record<keyof NewApplication, string>> = touched ? {
+    name: !NAME_RULE.test(form.name) ? 'lowercase letters, numbers and dashes; must start with a letter' : server.name,
+    description: !form.description.trim() ? 'say what it does' : server.description,
+    ownerTeam: !form.ownerTeam.trim() ? 'which team owns it?' : server.ownerTeam,
+    repoUrl: !REPO_RULE.test(form.repoUrl.trim()) ? 'owner/repo or an https git URL' : server.repoUrl,
+  } : {};
+  const valid = NAME_RULE.test(form.name) && form.description.trim() && form.ownerTeam.trim() && REPO_RULE.test(form.repoUrl.trim());
+
+  const close = () => { onClose(); setForm(empty); setTouched(false); create.reset(); };
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTouched(true);
+    if (!valid) return;
+    try {
+      const a = await create.mutateAsync({ ...form, description: form.description.trim(), ownerTeam: form.ownerTeam.trim(), repoUrl: form.repoUrl.trim() });
+      toast({ tone: 'success', title: `${a.name} registered`, body: 'It’s ready for its first deployment.' });
+      close();
+    } catch { /* shown below */ }
+  };
+
   return (
-    <span
-      className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider"
-      style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.color, fontFamily: 'JetBrains Mono, monospace' }}
-    >
-      <Circle className="w-1.5 h-1.5 fill-current" />
-      {status}
-    </span>
+    <Modal open={open} onClose={close} title={<>register an <span className="grad">APP</span></>} subtitle="Add a service to the platform so it can ride the release line.">
+      <form onSubmit={submit} className="space-y-4" noValidate>
+        <Field label="Name" error={errors.name} hint="becomes the Kubernetes deployment name">
+          {(id) => <Input id={id} value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value.toLowerCase() }))} placeholder="checkout-service" className="font-mono" autoComplete="off" />}
+        </Field>
+        <Field label="Description" error={errors.description}>
+          {(id) => <Input id={id} value={form.description} onChange={set('description')} placeholder="Handles the checkout flow" maxLength={500} />}
+        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Runtime">
+            {(id) => (
+              <Select id={id} value={form.runtime} onChange={set('runtime')}>
+                {['Java 21 / Spring Boot', 'Go 1.22', 'Python 3.12', 'Node 20', 'Node 20 / React', 'Rust 1.80', '.NET 8'].map((r) => <option key={r}>{r}</option>)}
+              </Select>
+            )}
+          </Field>
+          <Field label="Owner team" error={errors.ownerTeam}>
+            {(id) => <Input id={id} value={form.ownerTeam} onChange={set('ownerTeam')} placeholder="Platform Team" maxLength={80} />}
+          </Field>
+        </div>
+        <Field label="Repository" error={errors.repoUrl}>
+          {(id) => <Input id={id} value={form.repoUrl} onChange={set('repoUrl')} placeholder="org/checkout-service" className="font-mono" />}
+        </Field>
+        {create.error && !Object.keys(server).length && <p className="text-[0.85rem] font-semibold text-bad">{errorMessage(create.error)}</p>}
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" className="btn btn-ghost" onClick={close}>cancel</button>
+          <button type="submit" className="btn btn-primary" disabled={create.isPending}>{create.isPending ? <Spinner /> : <Plus className="h-4 w-4" />} register</button>
+        </div>
+      </form>
+    </Modal>
   );
-};
+}
 
 export default function Applications() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
-  const [runtimeFilter, setRuntimeFilter] = useState('ALL');
+  const [status, setStatus] = useState<Filter>('ALL');
+  const [runtime, setRuntime] = useState('ALL');
+  const [registerOpen, setRegisterOpen] = useState(false);
+  const [deployFor, setDeployFor] = useState<number | null>(null);
 
-  const filtered = APPS.filter(app => {
-    const matchSearch = app.name.toLowerCase().includes(search.toLowerCase()) ||
-      app.owner.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === 'ALL' || app.status === statusFilter;
-    const matchRuntime = runtimeFilter === 'ALL' || app.runtime.toLowerCase().includes(runtimeFilter.toLowerCase());
-    return matchSearch && matchStatus && matchRuntime;
+  const apps = useMemo(() => data?.content ?? [], [data]);
+  const counts = useMemo(() => ({
+    ALL: apps.length,
+    HEALTHY: apps.filter((a) => a.status === 'HEALTHY').length,
+    WARNING: apps.filter((a) => a.status === 'WARNING').length,
+    CRITICAL: apps.filter((a) => a.status === 'CRITICAL').length,
+  }), [apps]);
+
+  const filtered = apps.filter((app) => {
+    const q = search.toLowerCase();
+    return (app.name.toLowerCase().includes(q) || app.ownerTeam.toLowerCase().includes(q))
+      && (status === 'ALL' || app.status === status)
+      && (runtime === 'ALL' || app.runtime.toLowerCase().includes(runtime));
   });
 
+  if (isError) return <ErrorState message={errorMessage(error)} onRetry={() => refetch()} />;
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center justify-between">
+    <div className="space-y-8">
+      <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Application Catalog</h1>
-          <p className="text-[#94A3B8] text-sm mt-0.5">{APPS.length} services registered across the platform</p>
+          <motion.p {...rise(0)} className="tag">Service catalogue · {apps.length} registered</motion.p>
+          <h1 className="mt-4 font-display text-[clamp(2.6rem,6vw,4.75rem)] font-extrabold leading-[0.98]">
+            <RevealWords delay={0.06} parts={[{ t: 'every' }, { t: 'SERVICE,', className: 'grad' }, 'br', { t: 'one', className: 'thin' }, { t: 'place.' }]} />
+          </h1>
         </div>
-        <button
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
-          style={{
-            background: 'rgba(0, 240, 255, 0.1)',
-            border: '1px solid rgba(0, 240, 255, 0.3)',
-            color: '#00F0FF',
-            boxShadow: '0 0 20px rgba(0, 240, 255, 0.1)',
-          }}
-        >
-          <Plus className="w-4 h-4" /> Register Application
-        </button>
+        {can('ADMIN', 'DEVOPS', 'DEVELOPER') && (
+          <motion.div {...rise(0.3)} className="self-start md:self-auto">
+            <Magnetic>
+              <button className="btn btn-primary" onClick={() => setRegisterOpen(true)}><Plus className="h-4 w-4" strokeWidth={2.5} /> register app</button>
+            </Magnetic>
+          </motion.div>
+        )}
+      </header>
+
+      <motion.div {...rise(0.12)} className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <Segmented id="app-filter" value={status} onChange={setStatus} options={[
+          { value: 'ALL', label: 'all', count: counts.ALL },
+          { value: 'HEALTHY', label: 'healthy', count: counts.HEALTHY },
+          { value: 'WARNING', label: 'degraded', count: counts.WARNING },
+          { value: 'CRITICAL', label: 'failing', count: counts.CRITICAL },
+        ]} />
+        <Select value={runtime} onChange={(e) => setRuntime(e.target.value)} className="w-full lg:w-48">
+          {RUNTIMES.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
+        </Select>
+        <label className="flex h-11 w-full items-center gap-2.5 rounded-full border border-line-strong bg-surface px-4 text-fg-3 transition-colors focus-within:border-iris lg:ml-auto lg:max-w-xs">
+          <Search className="h-4 w-4 shrink-0" strokeWidth={2} />
+          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="filter by name or team"
+            className="w-full bg-transparent text-[0.9rem] font-medium text-fg placeholder:text-fg-3 focus:outline-none" />
+        </label>
       </motion.div>
 
-      {/* Filters */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="flex flex-wrap gap-3 p-4 rounded-xl"
-        style={{ background: 'rgba(11, 20, 35, 0.8)', border: '1px solid rgba(255,255,255,0.06)' }}
-      >
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#475569] w-4 h-4" />
-          <input
-            type="text"
-            placeholder="Search by name or owner..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="platform-input pl-9"
-            style={{ paddingTop: '0.5rem', paddingBottom: '0.5rem' }}
-          />
-        </div>
-        <select
-          value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value)}
-          className="platform-input px-3"
-          style={{ width: 'auto', minWidth: '130px', paddingTop: '0.5rem', paddingBottom: '0.5rem' }}
-        >
-          <option value="ALL">All Statuses</option>
-          <option value="HEALTHY">Healthy</option>
-          <option value="WARNING">Warning</option>
-          <option value="CRITICAL">Critical</option>
-        </select>
-        <select
-          value={runtimeFilter}
-          onChange={e => setRuntimeFilter(e.target.value)}
-          className="platform-input px-3"
-          style={{ width: 'auto', minWidth: '130px', paddingTop: '0.5rem', paddingBottom: '0.5rem' }}
-        >
-          <option value="ALL">All Runtimes</option>
-          <option value="java">Java</option>
-          <option value="go">Go</option>
-          <option value="python">Python</option>
-          <option value="node">Node</option>
-        </select>
-        <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-[#94A3B8] hover:text-white transition-colors" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
-          <Filter className="w-4 h-4" /> More Filters
-        </button>
-      </motion.div>
-
-      {/* Grid */}
-      {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center">
-          <Box className="w-12 h-12 text-[#475569] mb-4" />
-          <p className="text-white font-semibold mb-1">No applications found</p>
-          <p className="text-[#94A3B8] text-sm">Try adjusting your search or filters.</p>
-        </div>
+      {isLoading ? (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{[0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-80 !rounded-3xl" />)}</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {filtered.map((app, i) => (
@@ -204,6 +234,17 @@ export default function Applications() {
           ))}
         </div>
       )}
+
+      {!isLoading && filtered.length === 0 && (
+        <EmptyState title={<>nothing on this <span className="grad">LINE</span></>}
+          body={apps.length ? 'Try another search, or clear the filters.' : 'Register your first service to get started.'}
+          action={apps.length
+            ? <button onClick={() => { setSearch(''); setStatus('ALL'); setRuntime('ALL'); }} className="btn btn-ghost">clear filters</button>
+            : can('ADMIN', 'DEVOPS', 'DEVELOPER') && <button onClick={() => setRegisterOpen(true)} className="btn btn-primary"><Plus className="h-4 w-4" /> register app</button>} />
+      )}
+
+      <RegisterModal open={registerOpen} onClose={() => setRegisterOpen(false)} />
+      <DeployModal open={deployFor !== null} appId={deployFor ?? undefined} onClose={() => setDeployFor(null)} />
     </div>
   );
 }

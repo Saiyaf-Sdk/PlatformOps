@@ -1,0 +1,5 @@
+# local helper folders
+Claude outputs/
+setup/
+.env
+*.log
