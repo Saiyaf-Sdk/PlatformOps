@@ -1,18 +1,17 @@
 import { useMemo, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
-import { Plus, Search, GitBranch, Rocket, History } from 'lucide-react';
-import { Magnetic, RevealWords, TiltCard } from '../components/fx';
-import { ease, rise } from '../components/motion';
-import { AppStatusChip } from '../components/badges';
-import { EmptyState, ErrorState, Field, Input, Modal, Segmented, Select, Skeleton, Spinner } from '../components/ui';
-import DeployModal from '../components/DeployModal';
-import { useToast } from '../components/Toaster';
-import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Plus, Search, Server, GitBranch, User, ExternalLink } from 'lucide-react';
 import { useApplications, useCreateApplication, type NewApplication } from '../lib/queries';
-import { errorMessage, problemOf } from '../lib/api';
-import { timeAgo } from '../lib/format';
 import type { AppStatus } from '../lib/types';
+import { errorMessage, problemOf } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/Toaster';
+import { Modal, Field, Input, Select, Segmented, Spinner, EmptyState, ErrorState, Skeleton } from '../components/ui';
+import { Magnetic, RevealWords } from '../components/fx';
+import { rise } from '../components/motion';
+import { AppStatusChip } from '../components/badges';
+import DeployModal from '../components/DeployModal';
 
 const RUNTIMES = [
   { key: 'ALL', label: 'all runtimes' },
@@ -22,16 +21,7 @@ const RUNTIMES = [
   { key: 'node', label: 'Node' },
 ];
 
-function monogram(runtime: string) {
-  const r = runtime.toLowerCase();
-  if (r.startsWith('java')) return { t: 'JV', c: 'var(--lilac)' };
-  if (r.startsWith('go')) return { t: 'GO', c: 'var(--iris)' };
-  if (r.startsWith('python')) return { t: 'PY', c: 'var(--amber)' };
-  if (r.startsWith('node')) return { t: 'JS', c: 'var(--ok)' };
-  return { t: runtime.slice(0, 2).toUpperCase(), c: 'var(--sky)' };
-}
-
-type Filter = 'ALL' | AppStatus;
+type StatusFilter = 'ALL' | AppStatus;
 const NAME_RULE = /^[a-z]([-a-z0-9]{0,61}[a-z0-9])?$/;
 const REPO_RULE = /^(https:\/\/[\w.-]+\/[\w.-]+\/[\w.-]+(\.git)?|[\w.-]+\/[\w.-]+)$/;
 
@@ -100,13 +90,15 @@ function RegisterModal({ open, onClose }: { open: boolean; onClose: () => void }
 }
 
 export default function Applications() {
-  const { can } = useAuth();
-  const { data, isLoading, isError, error, refetch } = useApplications();
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<Filter>('ALL');
+  const [status, setStatus] = useState<StatusFilter>('ALL');
   const [runtime, setRuntime] = useState('ALL');
   const [registerOpen, setRegisterOpen] = useState(false);
   const [deployFor, setDeployFor] = useState<number | null>(null);
+
+  const { can } = useAuth();
+  const { data, isLoading, isError, error, refetch } = useApplications();
 
   const apps = useMemo(() => data?.content ?? [], [data]);
   const counts = useMemo(() => ({
@@ -163,47 +155,76 @@ export default function Applications() {
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{[0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-80 !rounded-3xl" />)}</div>
       ) : (
-        <motion.div layout className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <AnimatePresence mode="popLayout">
-            {filtered.map((app, i) => {
-              const m = monogram(app.runtime);
-              return (
-                <motion.div key={app.id} layout initial={{ opacity: 0, scale: 0.94, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.94 }}
-                  transition={{ duration: 0.45, delay: i * 0.04, ease }}>
-                  <TiltCard className="p-6">
-                    <div className="flex h-full flex-col">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl font-display text-[1.25rem] font-extrabold"
-                          style={{ color: m.c, background: `color-mix(in oklab, ${m.c} 15%, transparent)` }}>
-                          {m.t}
-                          <span className="absolute inset-0 rounded-2xl border" style={{ borderColor: `color-mix(in oklab, ${m.c} 35%, transparent)` }} />
-                        </div>
-                        <AppStatusChip status={app.status} />
-                      </div>
-                      <h3 className="mt-5 font-display text-[1.45rem] font-extrabold leading-tight">{app.name}</h3>
-                      <p className="mt-1.5 text-[0.9rem] font-medium leading-relaxed text-fg-2">{app.description}</p>
-                      <p className="mt-4 flex items-center gap-1.5 truncate font-mono text-[0.75rem] font-semibold text-fg-3">
-                        <GitBranch className="h-3.5 w-3.5 shrink-0" /> {app.repoUrl}
-                      </p>
-                      <dl className="mt-5 grid grid-cols-3 gap-3 border-t border-line pt-4 text-[0.82rem]">
-                        <div><dt className="tag">Team</dt><dd className="mt-1 truncate font-bold">{app.ownerTeam}</dd></div>
-                        <div><dt className="tag">Prod</dt><dd className="mt-1 truncate font-mono font-bold">{app.currentVersion ?? '—'}</dd></div>
-                        <div><dt className="tag">Shipped</dt><dd className="mt-1 font-bold">{timeAgo(app.lastDeployedAt)}</dd></div>
-                      </dl>
-                      <div className="mt-5 flex items-center gap-2">
-                        {can('ADMIN', 'DEVOPS', 'DEVELOPER') && (
-                          <button onClick={() => setDeployFor(app.id)} className="btn btn-ghost h-9 flex-1 text-[0.8rem]"><Rocket className="h-3.5 w-3.5" /> deploy</button>
-                        )}
-                        <Link to={`/deployments?app=${app.id}`} className="btn btn-ghost h-9 flex-1 text-[0.8rem]"><History className="h-3.5 w-3.5" /> history</Link>
-                      </div>
-                      <p className="tag mt-4 !text-[0.62rem]">{app.runtime}</p>
-                    </div>
-                  </TiltCard>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        </motion.div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          {filtered.map((app, i) => (
+            <motion.div
+              key={app.id}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+              className="rounded-xl p-5 cursor-pointer group transition-all duration-200"
+              style={{
+                background: 'rgba(17, 29, 49, 0.8)',
+                border: '1px solid rgba(255,255,255,0.06)',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.border = '1px solid rgba(0,240,255,0.25)';
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 0 20px rgba(0,240,255,0.05)';
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.border = '1px solid rgba(255,255,255,0.06)';
+                (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+              }}
+              onClick={() => navigate(`/applications/${app.id}`)}
+            >
+              {/* Card Header */}
+              <div className="flex items-start justify-between mb-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-semibold text-white group-hover:text-[#00F0FF] transition-colors truncate">
+                      {app.name}
+                    </h3>
+                    <ExternalLink className="w-3.5 h-3.5 text-[#475569] opacity-0 group-hover:opacity-100 shrink-0 transition-opacity" />
+                  </div>
+                  <p className="text-[#94A3B8] text-xs mt-0.5 truncate">{app.description}</p>
+                </div>
+                <AppStatusChip status={app.status} />
+              </div>
+
+              {/* Runtime pill */}
+              <div className="mb-4">
+                <span
+                  className="text-[10px] px-2 py-0.5 rounded"
+                  style={{ background: 'rgba(0,240,255,0.05)', border: '1px solid rgba(0,240,255,0.1)', color: '#00F0FF', fontFamily: 'JetBrains Mono, monospace' }}
+                >
+                  {app.runtime}
+                </span>
+              </div>
+
+              {/* Details */}
+              <div className="space-y-2 pt-3 border-t border-[rgba(255,255,255,0.05)] text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-[#94A3B8] text-xs"><User className="w-3 h-3" /> Owner</span>
+                  <span className="text-white text-xs font-medium">{app.ownerTeam}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-[#94A3B8] text-xs"><GitBranch className="w-3 h-3" /> Repository</span>
+                  <span className="text-[#00F0FF] text-xs" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{app.repoUrl}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-[#94A3B8] text-xs"><Server className="w-3 h-3" /> Production</span>
+                  <span className="text-white text-xs font-medium" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{app.currentVersion ?? '—'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[#94A3B8] text-xs">Last Deploy</span>
+                  <span className="text-[#475569] text-xs">{app.lastDeployedAt ?? '—'}</span>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
       )}
 
       {!isLoading && filtered.length === 0 && (

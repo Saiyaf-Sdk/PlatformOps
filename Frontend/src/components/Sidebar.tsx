@@ -1,7 +1,7 @@
 import type { ElementType, ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LayoutGrid, Boxes, Layers, Rocket, Server, Activity, Siren, ScrollText, Users, LogOut, X } from 'lucide-react';
+import { Server, Rocket, Activity, Users, LogOut, LayoutGrid, Boxes, Layers, Siren, ScrollText, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useDashboard } from '../lib/queries';
 import { ROLE_LABEL, initials } from '../lib/format';
@@ -48,7 +48,6 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
   const navigate = useNavigate();
   const { data: dash } = useDashboard();
   const openIncidents = dash?.kpis.openIncidents ?? 0;
-  const uptime = dash ? (dash.environments.find((e) => e.code === 'PRODUCTION')?.healthScore ?? 100) : null;
 
   return (
     <>
@@ -85,25 +84,6 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
             {can('ADMIN') && <NavItem to="/users" icon={Users} label="people & access" onNavigate={onClose} />}
           </Section>
         </nav>
-
-        <div className="mx-3 mb-3 overflow-hidden rounded-2xl border border-line bg-surface p-3.5">
-          <div className="flex items-center justify-between">
-            <span className="tag !text-ok">Prod health</span>
-            <span className="live-dot text-ok" />
-          </div>
-          <p className="mt-2 font-display text-[1.6rem] font-extrabold leading-none num">{uptime ?? '—'}<span className="text-fg-3">%</span></p>
-          <div className="mt-2.5 flex h-6 items-end gap-[3px]">
-            {[6, 9, 7, 12, 10, 14, 11, 16, 13, 18, 15, 20, 17, 22].map((h, i) => (
-              <motion.span
-                key={i}
-                initial={{ height: 2 }}
-                animate={{ height: h }}
-                transition={{ delay: 0.4 + i * 0.03, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                className="flex-1 rounded-[2px] bg-ok opacity-70"
-              />
-            ))}
-          </div>
-        </div>
 
         <div className="flex items-center gap-3 border-t border-line px-4 py-3.5">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky via-iris to-lilac font-display text-base font-extrabold text-white">

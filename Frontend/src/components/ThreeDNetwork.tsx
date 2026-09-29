@@ -1,7 +1,16 @@
 import { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
+import type { ThreeElements } from '@react-three/fiber';
 import { OrbitControls, Line, Text } from '@react-three/drei';
 import * as THREE from 'three';
+
+declare global {
+  namespace React {
+    namespace JSX {
+      interface IntrinsicElements extends ThreeElements {}
+    }
+  }
+}
 
 // ─── Single Node with rotating wireframe + 3D label ──────────────────────
 interface NodeProps {
