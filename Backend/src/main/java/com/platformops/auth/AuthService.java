@@ -106,11 +106,7 @@ public class AuthService {
         if (users.findByEmailIgnoreCase(email).isPresent()) {
             throw ApiException.badRequest("email_taken", "That email is already in use.");
         }
-        User user = new User();
-        user.setEmail(email);
-        user.setFullName(req.fullName().trim());
-        user.setPasswordHash(encoder.encode(req.password()));
-        user.setRole(Role.DEVELOPER);
+        User user = new User(email, req.fullName().trim(), encoder.encode(req.password()), Role.DEVELOPER);
         user.setEnabled(true);
         user.setFailedAttempts(0);
         user = users.save(user);
