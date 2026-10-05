@@ -15,7 +15,7 @@ import Incidents from './pages/Incidents';
 import AuditLog from './pages/AuditLog';
 import Users from './pages/Users';
 import { Infrastructure, Monitoring } from './pages/PlatformPages';
-import { ApplicationDetails, DeploymentDetails, InfrastructureRequests } from './pages/DetailPages';
+import { ApplicationDetails, DeploymentDetails, EnvironmentDetails, InfrastructureRequests } from './pages/DetailPages';
 import type { Role } from './lib/types';
 
 const ProtectedRoute = ({ children }: { children: ReactNode }) => {
@@ -42,6 +42,7 @@ function AppRoutes() {
         <Route path="applications" element={<Applications />} />
         <Route path="applications/:applicationId" element={<ApplicationDetails />} />
         <Route path="environments" element={<Environments />} />
+        <Route path="environments/:environmentId" element={<EnvironmentDetails />} />
         <Route path="deployments" element={<Deployments />} />
         <Route path="deployments/:deploymentId" element={<DeploymentDetails />} />
         <Route path="infrastructure" element={<Infrastructure />} />

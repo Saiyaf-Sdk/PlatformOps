@@ -2,7 +2,7 @@ spring:
   application:
     name: platformops-api
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/platformops}
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/platformops}
     username: ${DB_USERNAME:platformops}
     password: ${DB_PASSWORD:Mydata1234}
     hikari:
@@ -24,7 +24,7 @@ spring:
       write-dates-as-timestamps: false
 
 server:
-  port: ${PORT:8080}
+  port: ${PORT:8081}
   error:
     include-stacktrace: never
     include-message: never

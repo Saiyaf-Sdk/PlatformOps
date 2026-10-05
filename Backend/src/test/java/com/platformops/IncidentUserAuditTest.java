@@ -71,7 +71,7 @@ class IncidentUserAuditTest extends ApiTestBase {
                 .andExpect(status().isConflict());
 
         // non-admins can't manage people
-        postJson("/api/v1/users", tokenFor(Role.DEVOPS), Map.of("email", unique("x") + "@test.dev", "fullName", "X", "password", "Welcome123", "role", "VIEWER"))
+        postJson("/api/v1/users", tokenFor(Role.DEVOPS), Map.of("email", unique("x") + "@test.dev", "fullName", "User X", "password", "Welcome123", "role", "VIEWER"))
                 .andExpect(status().isForbidden());
     }
 

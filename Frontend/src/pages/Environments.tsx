@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Boxes, Cpu, Server } from 'lucide-react';
+import { ArrowUpRight, Boxes, Cpu, Server } from 'lucide-react';
 import { Odometer, RevealWords, SpotPanel, TiltCard } from '../components/fx';
 import { ease, reveal, rise } from '../components/motion';
 import { DeployStatusChip } from '../components/badges';
@@ -72,6 +72,12 @@ export default function Environments() {
                   <div><dt className="tag">Version</dt><dd className="mt-1 truncate font-mono font-semibold" style={{ color: m.color }}>{e.currentVersion ?? '—'}</dd></div>
                 </dl>
                 <p className="relative mt-4 text-[0.8rem] font-medium text-fg-3">{e.lastDeployedAt ? `last rollout ${timeAgo(e.lastDeployedAt)}` : 'nothing deployed yet'}</p>
+                <Link
+                  to={`/environments/${e.code.toLowerCase()}`}
+                  className="relative mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-accent-text hover:underline"
+                >
+                  View environment details <ArrowUpRight className="h-3 w-3" />
+                </Link>
               </TiltCard>
               <motion.div {...reveal(0.1)}>
                 <SpotPanel className="p-5">
