@@ -1,5 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useEnvironments } from '../lib/queries';
 import {
   Activity,
   AlertTriangle,
@@ -74,13 +76,116 @@ function SearchBar({ value, onChange, placeholder }: { value: string; onChange: 
 }
 
 const ENVIRONMENTS = [
-  { name: 'Development', region: 'ap-south-1', cluster: 'dev-cluster-01', services: 18, pods: '24 / 24', health: 96, version: 'v2.1.0-dev', tone: 'amber' as Tone },
-  { name: 'Staging', region: 'ap-south-1', cluster: 'staging-cluster-01', services: 18, pods: '18 / 18', health: 99, version: 'v2.0.8-rc1', tone: 'green' as Tone },
-  { name: 'Production', region: 'ap-southeast-1', cluster: 'prod-cluster-03', services: 24, pods: '48 / 48', health: 100, version: 'v2.0.7', tone: 'red' as Tone },
+  { name: 'Development', code: 'dev', region: 'ap-south-1', cluster: 'dev-cluster-01', services: 18, pods: '24 / 24', health: 96, version: 'v2.1.0-dev', tone: 'amber' as Tone, status: 'HEALTHY' },
+  { name: 'Staging', code: 'staging', region: 'ap-south-1', cluster: 'staging-cluster-01', services: 18, pods: '18 / 18', health: 99, version: 'v2.0.8-rc1', tone: 'green' as Tone, status: 'HEALTHY' },
+  { name: 'Production', code: 'production', region: 'ap-southeast-1', cluster: 'prod-cluster-03', services: 24, pods: '48 / 48', health: 100, version: 'v2.0.7', tone: 'red' as Tone, status: 'HEALTHY' },
 ];
 
 export function Environments() {
-  return <div className="space-y-6"><PageHeader eyebrow="Platform / Runtime" title="Environments" description="Manage deployment targets, clusters, and release health across every stage." action={<ActionButton icon={RefreshCw}>Sync inventory</ActionButton>} /><div className="grid grid-cols-1 md:grid-cols-3 gap-4"><Metric label="Managed environments" value="3" detail="All regions connected" icon={Server} /><Metric label="Services online" value="60 / 60" detail="100% registration coverage" icon={CheckCircle2} tone="green" /><Metric label="Cluster capacity" value="68%" detail="12 nodes available" icon={Cpu} tone="purple" /></div><div className="grid grid-cols-1 xl:grid-cols-3 gap-5">{ENVIRONMENTS.map((env, index) => { const style = TONES[env.tone]; return <motion.article key={env.name} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.08 }} className="rounded-xl p-5" style={{ background: style.bg, border: `1px solid ${style.border}` }}><div className="flex items-start justify-between"><div><p className="text-[10px] uppercase tracking-widest" style={{ color: style.color, fontFamily: 'JetBrains Mono, monospace' }}>{env.name}</p><h2 className="text-lg font-semibold text-white mt-1">{env.cluster}</h2></div><StatusBadge label="Healthy" tone="green" /></div><div className="grid grid-cols-2 gap-3 mt-6 text-xs"><div><p className="text-[#64748B]">Region</p><p className="text-white mt-1">{env.region}</p></div><div><p className="text-[#64748B]">Services</p><p className="text-white mt-1">{env.services} registered</p></div><div><p className="text-[#64748B]">Pods running</p><p className="text-white mt-1">{env.pods}</p></div><div><p className="text-[#64748B]">Release</p><p className="mt-1" style={{ color: style.color, fontFamily: 'JetBrains Mono, monospace' }}>{env.version}</p></div></div><div className="mt-6"><div className="flex justify-between text-xs mb-2"><span className="text-[#94A3B8]">Health score</span><span className="text-white">{env.health}%</span></div><div className="h-1.5 rounded-full bg-[rgba(255,255,255,0.08)]"><div className="h-full rounded-full" style={{ width: `${env.health}%`, background: style.color }} /></div></div><button className="mt-5 text-xs font-semibold" style={{ color: style.color }}>View environment details <ArrowUpRight className="inline w-3 h-3" /></button></motion.article>; })}</div></div>;
+  const navigate = useNavigate();
+  const { data: apiEnvs, isFetching, refetch } = useEnvironments();
+
+  const envs = useMemo(() => {
+    return ENVIRONMENTS.map(env => {
+      const match = apiEnvs?.find(e => e.code.toLowerCase() === env.code.toLowerCase());
+      if (!match) return env;
+      return {
+        ...env,
+        cluster: match.cluster || env.cluster,
+        health: match.healthScore ?? env.health,
+        pods: match.podsRunning ? `${match.podsRunning} / ${match.podsRunning}` : env.pods,
+        version: match.currentVersion || env.version,
+        status: match.status,
+      };
+    });
+  }, [apiEnvs]);
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Platform / Runtime"
+        title="Environments"
+        description="Manage deployment targets, clusters, and release health across every stage."
+        action={
+          <button
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-colors hover:bg-[rgba(255,255,255,0.06)]"
+            style={{ color: '#00F0FF', background: 'rgba(0,240,255,0.08)', border: '1px solid rgba(0,240,255,0.2)' }}
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+            Sync inventory
+          </button>
+        }
+      />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Metric label="Managed environments" value={String(envs.length)} detail="All regions connected" icon={Server} />
+        <Metric label="Services online" value="60 / 60" detail="100% registration coverage" icon={CheckCircle2} tone="green" />
+        <Metric label="Cluster capacity" value="68%" detail="12 nodes available" icon={Cpu} tone="purple" />
+      </div>
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        {envs.map((env, index) => {
+          const style = TONES[env.tone];
+          const badgeTone: Tone = env.status === 'DEGRADED' ? 'amber' : env.status === 'DOWN' ? 'red' : 'green';
+          return (
+            <motion.article
+              key={env.name}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.08 }}
+              onClick={() => navigate(`/environments/${env.code}`)}
+              className="rounded-xl p-5 cursor-pointer transition-all hover:-translate-y-1 hover:shadow-lg group"
+              style={{ background: style.bg, border: `1px solid ${style.border}` }}
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest" style={{ color: style.color, fontFamily: 'JetBrains Mono, monospace' }}>
+                    {env.name}
+                  </p>
+                  <h2 className="text-lg font-semibold text-white mt-1 group-hover:text-[#00F0FF] transition-colors">{env.cluster}</h2>
+                </div>
+                <StatusBadge label={env.status ? env.status.toLowerCase() : 'healthy'} tone={badgeTone} />
+              </div>
+              <div className="grid grid-cols-2 gap-3 mt-6 text-xs">
+                <div>
+                  <p className="text-[#64748B]">Region</p>
+                  <p className="text-white mt-1">{env.region}</p>
+                </div>
+                <div>
+                  <p className="text-[#64748B]">Services</p>
+                  <p className="text-white mt-1">{env.services} registered</p>
+                </div>
+                <div>
+                  <p className="text-[#64748B]">Pods running</p>
+                  <p className="text-white mt-1">{env.pods}</p>
+                </div>
+                <div>
+                  <p className="text-[#64748B]">Release</p>
+                  <p className="mt-1" style={{ color: style.color, fontFamily: 'JetBrains Mono, monospace' }}>{env.version}</p>
+                </div>
+              </div>
+              <div className="mt-6">
+                <div className="flex justify-between text-xs mb-2">
+                  <span className="text-[#94A3B8]">Health score</span>
+                  <span className="text-white">{env.health}%</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-[rgba(255,255,255,0.08)] overflow-hidden">
+                  <div className="h-full rounded-full transition-all" style={{ width: `${env.health}%`, background: style.color }} />
+                </div>
+              </div>
+              <Link
+                to={`/environments/${env.code}`}
+                onClick={(e) => e.stopPropagation()}
+                className="mt-5 inline-flex items-center gap-1.5 text-xs font-semibold group-hover:underline"
+                style={{ color: style.color }}
+              >
+                View environment details <ArrowUpRight className="inline w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              </Link>
+            </motion.article>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 const DEPLOYMENTS = [
