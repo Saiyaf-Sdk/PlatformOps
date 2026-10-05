@@ -41,6 +41,13 @@ export function useCreateApplication() {
 export const useEnvironments = () =>
   useQuery({ queryKey: ['environments'], queryFn: async () => (await api.get<Environment[]>('/environments')).data });
 
+export const useEnvironment = (code?: string) =>
+  useQuery({
+    queryKey: ['environment', code],
+    enabled: !!code,
+    queryFn: async () => (await api.get<Environment>(`/environments/${code}`)).data,
+  });
+
 // ── deployments ───────────────────────────────────────────
 export interface DeploymentFilters {
   applicationId?: number; environment?: EnvCode | 'ALL'; status?: DeploymentStatus | 'ALL'; activeOnly?: boolean; page?: number; size?: number;

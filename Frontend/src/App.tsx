@@ -10,7 +10,7 @@ import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import Applications from './pages/Applications';
 import { AuditLogs, Deployments, Environments, Incidents, Infrastructure, Monitoring, UsersPage } from './pages/PlatformPages';
-import { ApplicationDetails, DeploymentDetails, InfrastructureRequests } from './pages/DetailPages';
+import { ApplicationDetails, DeploymentDetails, EnvironmentDetails, InfrastructureRequests } from './pages/DetailPages';
 
 const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const { isAuthenticated } = useAuth();
@@ -30,6 +30,7 @@ function AppRoutes() {
         <Route path="applications" element={<Applications />} />
         <Route path="applications/:applicationId" element={<ApplicationDetails />} />
         <Route path="environments" element={<Environments />} />
+        <Route path="environments/:environmentId" element={<EnvironmentDetails />} />
         <Route path="deployments" element={<Deployments />} />
         <Route path="deployments/:deploymentId" element={<DeploymentDetails />} />
         <Route path="infrastructure" element={<Infrastructure />} />
