@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowUpRight, CheckCircle2, Circle, Clock3, Database, GitBranch, Layers3, Rocket, Server, ShieldCheck, Terminal } from 'lucide-react';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, ArrowUpRight, CheckCircle2, Circle, Database, GitBranch, Rocket, Server, ShieldCheck, Terminal } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 type Tone = 'cyan' | 'green' | 'amber' | 'red';
@@ -23,24 +23,187 @@ function Back({ to, label }: { to: string; label: string }) { return <Link to={t
 function Info({ label, value, icon: Icon }: { label: string; value: string; icon: React.ElementType }) { return <div className="rounded-xl p-4" style={panel}><Icon className="h-4 w-4 text-[#00F0FF]" /><p className="mt-3 text-[10px] uppercase tracking-widest text-[#64748B]">{label}</p><p className="mt-1 text-sm text-white">{value}</p></div>; }
 function Field({ label, children }: { label: string; children: ReactNode }) { return <label className="block"><span className="mb-1.5 block text-xs text-[#94A3B8]">{label}</span>{children}</label>; }
 
-const apps = {
-  '1': ['payment-gateway', 'Core payment processing microservice', 'Java / Spring Boot', 'Fintech Squad', 'v1.8.0'],
-  '2': ['auth-service', 'JWT authentication and authorization', 'Go 1.21', 'Platform Team', 'v3.2.1'],
-  '3': ['frontend-dashboard', 'React SPA for the customer portal', 'Node 20 / React', 'Web Team', 'v5.1.2'],
-};
+import { useApplication, useDeployments, useEnvironments } from '../lib/queries';
+import { AppStatusChip, DeployStatusChip, EnvChip } from '../components/badges';
+import { Skeleton, ErrorState } from '../components/ui';
+import DeployModal from '../components/DeployModal';
+import { timeAgo, dateTime } from '../lib/format';
+import { useAuth } from '../context/AuthContext';
 
 export function ApplicationDetails() {
-  const { applicationId = '2' } = useParams();
-  const [name, description, runtime, owner, version] = apps[applicationId as keyof typeof apps] || apps['2'];
-  const [tab, setTab] = useState('Overview');
-  return <div className="space-y-6"><Back to="/applications" label="Back to applications" /><Header eyebrow="Applications / Details" title={name} description={description} action={<Badge label="HEALTHY" tone="green" />} /><div className="grid gap-5 lg:grid-cols-3"><div className="space-y-5 lg:col-span-2"><div className="flex gap-1 border-b border-[rgba(255,255,255,0.08)]">{['Overview', 'Environments', 'Deployments'].map(item => <button key={item} onClick={() => setTab(item)} className={`px-4 py-3 text-xs font-semibold ${tab === item ? 'border-b-2 border-[#00F0FF] text-[#00F0FF]' : 'text-[#64748B]'}`}>{item}</button>)}</div>{tab === 'Overview' && <div className="grid grid-cols-2 gap-4"><Info label="Runtime" value={runtime} icon={Terminal} /><Info label="Owner" value={owner} icon={ShieldCheck} /><Info label="Repository" value={`org/${name}`} icon={GitBranch} /><Info label="Version" value={version} icon={Rocket} /></div>}{tab === 'Environments' && <div className="space-y-3">{['Development', 'Staging', 'Production'].map(environment => <div key={environment} className="flex items-center gap-4 rounded-xl p-4" style={panel}><Server className="h-5 w-5 text-[#00F0FF]" /><span className="flex-1 text-sm text-white">{environment}</span><Badge label="Healthy" tone="green" /><ArrowUpRight className="h-4 w-4 text-[#64748B]" /></div>)}</div>}{tab === 'Deployments' && <div className="space-y-3">{['v1.8.0 · production · 2h ago', 'v1.7.9 · staging · Yesterday'].map((release, index) => <Link key={release} to={`/deployments/${index + 1}`} className="flex items-center gap-4 rounded-xl p-4" style={panel}><Rocket className="h-4 w-4 text-[#00F0FF]" /><span className="flex-1 text-sm text-white">{release}</span><Badge label="SUCCESS" tone="green" /></Link>)}</div>}</div><div className="space-y-5"><div className="rounded-xl p-5" style={panel}><p className="text-[10px] uppercase tracking-widest text-[#64748B]">Health score</p><p className="mt-2 text-4xl font-bold text-white">98.6%</p><p className="mt-1 text-xs text-[#00FFA3]">+0.8% from last week</p><div className="mt-5 h-2 rounded-full bg-[rgba(255,255,255,0.06)]"><div className="h-full w-[98.6%] rounded-full bg-[#00FFA3]" /></div></div><div className="rounded-xl p-5" style={panel}><h2 className="text-sm font-semibold text-white">Service metadata</h2><div className="mt-4 space-y-3 text-xs"><p className="flex justify-between"><span className="text-[#64748B]">Last deployment</span><span className="text-white">14m ago</span></p><p className="flex justify-between"><span className="text-[#64748B]">SLO target</span><span className="text-white">99.9%</span></p></div></div></div></div></div>;
+  const { applicationId } = useParams();
+  const appId = Number(applicationId);
+  const { data: app, isLoading, isError, refetch } = useApplication(appId);
+  const { data: deployments } = useDeployments({ applicationId: appId });
+  const { data: environments } = useEnvironments();
+  const { can } = useAuth();
+  const [tab, setTab] = useState<'Overview' | 'Environments' | 'Deployments'>('Overview');
+  const [deployEnv, setDeployEnv] = useState<'DEV' | 'STAGING' | 'PRODUCTION' | undefined>(undefined);
+  const [deployOpen, setDeployOpen] = useState(false);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Back to="/applications" label="Back to applications" />
+        <Skeleton className="h-16 w-1/3" />
+        <div className="grid gap-5 lg:grid-cols-3">
+          <Skeleton className="h-64 lg:col-span-2" />
+          <Skeleton className="h-64" />
+        </div>
+      </div>
+    );
+  }
+
+  if (isError || !app) {
+    return (
+      <div className="space-y-6">
+        <Back to="/applications" label="Back to applications" />
+        <ErrorState message="Could not load application details. The application may not exist." onRetry={() => refetch()} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <Back to="/applications" label="Back to applications" />
+      <Header
+        eyebrow="Applications / Service Catalogue"
+        title={app.name}
+        description={app.description}
+        action={
+          <div className="flex items-center gap-3">
+            <AppStatusChip status={app.status} />
+            {can('ADMIN', 'DEVOPS', 'DEVELOPER') && (
+              <button
+                onClick={() => { setDeployEnv(undefined); setDeployOpen(true); }}
+                className="btn btn-primary text-xs"
+              >
+                <Rocket className="h-3.5 w-3.5" /> deploy release
+              </button>
+            )}
+          </div>
+        }
+      />
+
+      <div className="grid gap-5 lg:grid-cols-3">
+        <div className="space-y-5 lg:col-span-2">
+          <div className="flex gap-1 border-b border-[rgba(255,255,255,0.08)]">
+            {(['Overview', 'Environments', 'Deployments'] as const).map(item => (
+              <button
+                key={item}
+                onClick={() => setTab(item)}
+                className={`px-4 py-3 text-xs font-semibold ${tab === item ? 'border-b-2 border-[#00F0FF] text-[#00F0FF]' : 'text-[#64748B]'}`}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+
+          {tab === 'Overview' && (
+            <div className="grid grid-cols-2 gap-4">
+              <Info label="Runtime" value={app.runtime} icon={Terminal} />
+              <Info label="Owner team" value={app.ownerTeam} icon={ShieldCheck} />
+              <Info label="Repository" value={app.repoUrl} icon={GitBranch} />
+              <Info label="Production release" value={app.currentVersion ?? 'Not deployed yet'} icon={Rocket} />
+            </div>
+          )}
+
+          {tab === 'Environments' && (
+            <div className="space-y-3">
+              {environments?.map(env => (
+                <div key={env.code} className="flex items-center justify-between gap-4 rounded-xl p-4" style={panel}>
+                  <div className="flex items-center gap-3">
+                    <Server className="h-5 w-5 text-[#00F0FF]" />
+                    <div>
+                      <p className="text-sm font-semibold text-white">{env.displayName} <span className="font-mono text-xs text-[#64748B]">({env.namespace})</span></p>
+                      <p className="text-xs text-[#94A3B8] mt-0.5">{env.cluster} · {env.podsRunning} pods</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <EnvChip code={env.code} />
+                    {can('ADMIN', 'DEVOPS', 'DEVELOPER') && (
+                      <button
+                        onClick={() => { setDeployEnv(env.code); setDeployOpen(true); }}
+                        className="btn btn-ghost text-xs py-1 px-3"
+                      >
+                        Deploy to {env.code}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {tab === 'Deployments' && (
+            <div className="space-y-3">
+              {deployments && deployments.content.length > 0 ? (
+                deployments.content.map(d => (
+                  <Link
+                    key={d.id}
+                    to={`/deployments?focus=${d.id}`}
+                    className="flex items-center justify-between gap-4 rounded-xl p-4 transition-colors hover:bg-[rgba(255,255,255,0.03)]"
+                    style={panel}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Rocket className="h-4 w-4 text-[#00F0FF]" />
+                      <div>
+                        <p className="text-sm font-semibold text-white">
+                          #{d.id} <span className="font-mono text-[#00F0FF]">{d.version}</span>
+                        </p>
+                        <p className="text-xs text-[#64748B] mt-0.5">
+                          {d.triggeredBy?.fullName ?? 'system'} · {timeAgo(d.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <EnvChip code={d.environment.code} />
+                      <DeployStatusChip status={d.status} />
+                      <ArrowUpRight className="h-4 w-4 text-[#64748B]" />
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                <div className="p-8 text-center text-xs text-[#64748B]" style={panel}>
+                  No deployments recorded for this application yet.
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-5">
+          <div className="rounded-xl p-5" style={panel}>
+            <p className="text-[10px] uppercase tracking-widest text-[#64748B]">Service health</p>
+            <p className="mt-2 text-3xl font-bold text-white capitalize">{app.status.toLowerCase()}</p>
+            <p className="mt-1 text-xs text-[#00FFA3]">Registered {timeAgo(app.createdAt)}</p>
+            <div className="mt-4 pt-4 border-t border-[rgba(255,255,255,0.06)] space-y-2 text-xs">
+              <p className="flex justify-between">
+                <span className="text-[#64748B]">Last deployment:</span>
+                <span className="text-white">{app.lastDeployedAt ? timeAgo(app.lastDeployedAt) : 'Never'}</span>
+              </p>
+              <p className="flex justify-between">
+                <span className="text-[#64748B]">Last updated:</span>
+                <span className="text-white">{dateTime(app.updatedAt)}</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <DeployModal
+        open={deployOpen}
+        appId={app.id}
+        env={deployEnv}
+        onClose={() => setDeployOpen(false)}
+      />
+    </div>
+  );
 }
 
 export function DeploymentDetails() {
   const { deploymentId = '1' } = useParams();
-  const [rolledBack, setRolledBack] = useState(false);
-  const stages = ['Source checkout', 'Unit tests', 'Build container', 'Security scan', 'Production rollout'];
-  return <div className="space-y-6"><Back to="/deployments" label="Back to deployments" /><Header eyebrow="Deployments / Details" title={`DEP-${String(1042 - Number(deploymentId) + 1).padStart(4, '0')}`} description="auth-service v3.2.1 · production" action={<div className="flex gap-2"><Badge label={rolledBack ? 'ROLLED BACK' : 'SUCCESS'} tone={rolledBack ? 'amber' : 'green'} /><button onClick={() => setRolledBack(true)} disabled={rolledBack} className="rounded-lg border border-[rgba(255,51,102,0.3)] px-3 py-2 text-xs text-[#FF6B8A] disabled:opacity-50">Rollback</button></div>} /><div className="grid grid-cols-2 gap-4 lg:grid-cols-4"><Info label="Application" value="auth-service" icon={Layers3} /><Info label="Environment" value="production" icon={Server} /><Info label="Commit" value="8f3a1c2" icon={GitBranch} /><Info label="Duration" value="4m 12s" icon={Clock3} /></div><div className="grid gap-5 lg:grid-cols-3"><div className="rounded-xl p-5 lg:col-span-2" style={panel}><h2 className="text-sm font-semibold text-white">Pipeline timeline</h2><p className="mt-1 text-xs text-[#64748B]">Triggered by A. Kumar · branch main</p><div className="mt-6">{stages.map((stage, index) => <div key={stage} className="flex gap-4"><div className="flex flex-col items-center"><div className="flex h-7 w-7 items-center justify-center rounded-full bg-[rgba(0,255,163,0.12)] text-[#00FFA3]"><CheckCircle2 className="h-4 w-4" /></div>{index < stages.length - 1 && <div className="h-8 w-px bg-[rgba(0,255,163,0.2)]" />}</div><div className="pb-4"><p className="text-sm text-white">{stage}</p><p className="mt-1 text-xs text-[#64748B]">{index === 4 && rolledBack ? 'Rolled back' : 'Completed'}</p></div></div>)}</div></div><div className="rounded-xl p-5" style={panel}><h2 className="text-sm font-semibold text-white">Deployment logs</h2><div className="mt-4 rounded-lg bg-[#050B14] p-3 font-mono text-[10px] leading-6 text-[#64748B]"><p className="text-[#00FFA3]">[OK] Image pulled from registry</p><p className="text-[#00FFA3]">[OK] Health checks passed</p><p className="text-[#00F0FF]">[INFO] Rollout complete</p></div></div></div></div>;
+  return <Navigate to={`/deployments?focus=${deploymentId}`} replace />;
 }
 
 export function InfrastructureRequests() {

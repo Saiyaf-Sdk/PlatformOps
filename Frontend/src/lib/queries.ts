@@ -27,6 +27,13 @@ export const useApplications = (f: AppFilters = {}) =>
     placeholderData: keepPreviousData,
   });
 
+export const useApplication = (id?: number) =>
+  useQuery({
+    queryKey: ['application', id],
+    enabled: typeof id === 'number' && !isNaN(id) && id > 0,
+    queryFn: async () => (await api.get<Application>(`/applications/${id}`)).data,
+  });
+
 export interface NewApplication { name: string; description: string; runtime: string; ownerTeam: string; repoUrl: string }
 
 export function useCreateApplication() {
