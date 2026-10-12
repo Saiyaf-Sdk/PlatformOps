@@ -1,0 +1,70 @@
+services:
+
+  # ==========================================
+  # PostgreSQL Database
+  # ==========================================
+  database:
+    image: postgres:17
+    container_name: platformops-db
+
+    environment:
+      POSTGRES_DB: platformops
+      POSTGRES_USER: platformops
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U platformops -d platformops"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+    restart: unless-stopped
+
+
+  # ==========================================
+  # Spring Boot Backend
+  # ==========================================
+  backend:
+    image: platformops-backend:latest
+    container_name: platformops-backend
+
+    ports:
+      - "8080:8081"
+
+    environment:
+      DB_URL: jdbc:postgresql://database:5432/platformops
+      DB_USERNAME: platformops
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+
+    depends_on:
+      database:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+
+  # ==========================================
+  # React Frontend
+  # ==========================================
+  frontend:
+    image: platformops-frontend:latest
+    container_name: platformops-frontend
+
+    ports:
+      - "3000:80"
+
+    depends_on:
+      - backend
+
+    restart: unless-stopped
+
+
+# ==========================================
+# Persistent Storage
+# ==========================================
+volumes:
+  postgres_data:
