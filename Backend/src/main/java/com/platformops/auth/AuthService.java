@@ -107,6 +107,8 @@ public class AuthService {
             throw ApiException.badRequest("email_taken", "That email is already in use.");
         }
         User user = new User(email, req.fullName().trim(), encoder.encode(req.password()), Role.DEVELOPER);
+        user.setEnabled(true);
+        user.setFailedAttempts(0);
         user = users.save(user);
         
         audit.recordIndependent(user.getId(), email, "SIGNUP", "USER", user.getId(), "Account created via signup");

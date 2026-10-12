@@ -121,9 +121,9 @@ export default function Applications() {
     <div className="space-y-8">
       <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div>
-          <motion.p {...rise(0)} className="tag">Service catalogue · {apps.length} registered</motion.p>
+          <motion.p {...rise(0)} className="tag">Release control · {apps.length} services registered</motion.p>
           <h1 className="mt-4 font-display text-[clamp(2.6rem,6vw,4.75rem)] font-extrabold leading-[0.98]">
-            <RevealWords delay={0.06} parts={[{ t: 'every' }, { t: 'SERVICE,', className: 'grad' }, 'br', { t: 'one', className: 'thin' }, { t: 'place.' }]} />
+            <RevealWords delay={0.06} parts={[{ t: 'every' }, { t: 'SERVICE,', className: 'grad' }, 'br', { t: 'under', className: 'thin' }, { t: 'control.' }]} />
           </h1>
         </div>
         {can('ADMIN', 'DEVOPS', 'DEVELOPER') && (
@@ -136,7 +136,7 @@ export default function Applications() {
       </header>
 
       <motion.div {...rise(0.12)} className="flex flex-col gap-3 lg:flex-row lg:items-center">
-        <Segmented id="app-filter" value={status} onChange={setStatus} options={[
+        <Segmented<StatusFilter> id="app-filter" value={status} onChange={setStatus} options={[
           { value: 'ALL', label: 'all', count: counts.ALL },
           { value: 'HEALTHY', label: 'healthy', count: counts.HEALTHY },
           { value: 'WARNING', label: 'degraded', count: counts.WARNING },
@@ -240,3 +240,4 @@ export default function Applications() {
     </div>
   );
 }
+

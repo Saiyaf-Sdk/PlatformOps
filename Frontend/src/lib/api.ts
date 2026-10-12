@@ -2,7 +2,7 @@ import axios, { AxiosError, type AxiosRequestConfig } from 'axios';
 import { session } from './session';
 import type { TokenResponse } from './types';
 
-export const API_URL: string = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') || 'http://localhost:8080/api/v1';
+export const API_URL: string = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') || 'http://localhost:8081/api/v1';
 
 export const api = axios.create({
   baseURL: API_URL,
