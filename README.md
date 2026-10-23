@@ -112,35 +112,47 @@ npm run dev
 
 ---
 
-## 5. Docker Setup
+## 5. Docker & Docker Compose Setup
 
-PlatformOps includes standalone multi-stage Dockerfiles for both services.
+PlatformOps provides a multi-container local development and demo environment orchestrated via modern Docker Compose (`compose.yaml`).
 
-### Build Backend Image
+> Detailed operational architecture, persistence guarantees, and failure tests are documented in [docs/docker-compose.md](docs/docker-compose.md).
+
+### Start Complete Environment (One Command)
 ```bash
-docker build -t platformops-api:latest -f Backend/Dockerfile Backend/
+# 1. Copy root environment template (if not already done)
+cp .env.example .env
+
+# 2. Build and launch all services in detached mode
+docker compose up -d
 ```
 
-### Build Frontend Image
+### Access Services
+- **Web Application**: [http://localhost](http://localhost) (Port 80)
+- **Backend API & Swagger**: [http://localhost/swagger-ui.html](http://localhost/swagger-ui.html) or [http://localhost:8081/swagger-ui.html](http://localhost:8081/swagger-ui.html)
+- **Actuator Health Probe**: [http://localhost/actuator/health](http://localhost/actuator/health) or [http://localhost:8081/actuator/health](http://localhost:8081/actuator/health)
+- **PostgreSQL Database**: `localhost:5432` (`platformops` / `platformops`)
+
+### Docker Compose Operational Commands
 ```bash
-docker build -t platformops-web:latest -f Frontend/Dockerfile Frontend/
+# Check service health and running status
+docker compose ps
+
+# Follow container logs
+docker compose logs -f
+
+# Rebuild images after code modifications
+docker compose up -d --build
+
+# Stop running services without losing state
+docker compose stop
+
+# Stop and remove containers (preserves database volume)
+docker compose down
 ```
 
-### Run Containers Manually
-```bash
-# Run Backend API
-docker run -d --name platformops-api \
-  -p 8081:8081 \
-  -e DB_URL=jdbc:postgresql://host.docker.internal:5432/platformops \
-  -e DB_USERNAME=platformops \
-  -e DB_PASSWORD=platformops \
-  platformops-api:latest
-
-# Run Frontend Web Server
-docker run -d --name platformops-web \
-  -p 80:80 \
-  platformops-web:latest
-```
+> [!WARNING]
+> Running `docker compose down -v` permanently deletes the named volume `platformops_postgres_data` and all database records. Avoid the `-v` flag unless a full database reset is required.
 
 ---
 

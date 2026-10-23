@@ -2,7 +2,7 @@
 FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /src
 COPY pom.xml .
-RUN mvn -B -ntp -q dependency:go-offline
+RUN mvn -B -ntp -q dependency:resolve
 COPY src ./src
 RUN mvn -B -ntp -q package -DskipTests && cp target/platformops-api-*.jar /src/app.jar
 
