@@ -282,15 +282,23 @@ cd Frontend
 npm run build
 ```
 
+### Continuous Integration (GitHub Actions)
+PlatformOps utilizes GitHub Actions for automated pre-merge pull request validation:
+- **Frontend Quality & Build Checks**: Node 22, `npm ci`, `oxlint`, Vite production build, security audit.
+- **Backend Test & Packaging Checks**: Java 21, PostgreSQL 16 service container, `mvn compile`, `mvn test` (35 tests), `mvn package`, Surefire report artifact upload.
+- **Docker Build & Compose Validation**: `docker compose config` validation, multi-stage Docker builds for frontend and backend.
+
+> Complete workflow architecture, required branch protections, and troubleshooting are documented in [docs/github-actions.md](docs/github-actions.md).
+
 ---
 
 ## 11. Future DevOps Roadmap
 
 The PlatformOps project follows a progressive, multi-stage DevOps implementation:
 
-- [x] **Stage 1 — Git & GitHub Collaboration Workflow** *(Current)*
-- [ ] **Stage 2 — Docker Compose Multi-Service Local Stack**
-- [ ] **Stage 3 — GitHub Actions Automated CI/CD Pipelines**
+- [x] **Stage 1 — Git & GitHub Collaboration Workflow**
+- [x] **Stage 2 — Docker Compose Multi-Service Local Stack**
+- [x] **Stage 3 — GitHub Actions Automated CI Pipeline**
 - [ ] **Stage 4 — Jenkins Enterprise Pipeline Automation**
 - [ ] **Stage 5 — AWS Cloud & Amazon ECR Container Registry**
 - [ ] **Stage 6 — Terraform Infrastructure as Code (IaC)**

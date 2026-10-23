@@ -1,0 +1,170 @@
+name: CI - Continuous Integration
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - sajath-dev
+  pull_request:
+    branches:
+      - main
+      - develop
+      - sajath-dev
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # =========================================================================
+  # 1. FRONTEND CHECKS
+  # =========================================================================
+  frontend-checks:
+    name: Frontend Quality & Build Checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Frontend
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: Frontend/package-lock.json
+
+      - name: Install Dependencies Reproducibly (npm ci)
+        run: npm ci
+
+      - name: Lint Source Code (oxlint)
+        run: npm run lint
+
+      - name: Run Frontend Tests
+        run: |
+          echo "========================================================"
+          echo "Frontend Test Suite: NOT CONFIGURED"
+          echo "No test script or test runner currently defined in package.json."
+          echo "========================================================"
+
+      - name: Production Bundle Build (tsc -b && vite build)
+        run: npm run build
+
+      - name: Security Dependency Audit (npm audit)
+        run: |
+          echo "Running npm audit check for high/critical security advisories..."
+          npm audit --audit-level=high || echo "::warning::npm audit reported security advisories for review."
+
+  # =========================================================================
+  # 2. BACKEND CHECKS
+  # =========================================================================
+  backend-checks:
+    name: Backend Test & Packaging Checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Backend
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: platformops_test
+          POSTGRES_USER: platformops_test
+          POSTGRES_PASSWORD: test_password_ci_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 21 (Eclipse Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      - name: Ensure Maven Wrapper is Executable
+        run: chmod +x mvnw
+
+      - name: Verify PostgreSQL Service Readiness
+        run: |
+          echo "Verifying PostgreSQL service container is reachable on localhost:5432..."
+          for i in $(seq 1 30); do
+            if (echo > /dev/tcp/localhost/5432) >/dev/null 2>&1; then
+              echo "PostgreSQL container is accepting connections on port 5432."
+              exit 0
+            fi
+            echo "Waiting for PostgreSQL service (attempt $i/30)..."
+            sleep 1
+          done
+          echo "Proceeding with test suite..."
+
+      - name: Compile Backend (mvn compile)
+        run: ./mvnw -B -ntp compile
+
+      - name: Run Backend Integration & Unit Tests (mvn test)
+        run: ./mvnw -B -ntp test
+        env:
+          DB_URL: jdbc:postgresql://localhost:5432/platformops_test
+          DB_USERNAME: platformops_test
+          DB_PASSWORD: test_password_ci_only
+          JWT_SECRET: ZGV2LW9ubHktcGxhdGZvcm1vcHMtc2VjcmV0LWNoYW5nZS1tZS1pbi1wcm9kdWN0aW9uLTEyMzQ1Njc4OTA=
+
+      - name: Package Spring Boot Artifact (mvn package -DskipTests)
+        run: ./mvnw -B -ntp package -DskipTests
+
+      - name: Upload Surefire Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-test-reports
+          path: Backend/target/surefire-reports/
+          retention-days: 7
+
+  # =========================================================================
+  # 3. DOCKER VALIDATION
+  # =========================================================================
+  docker-validation:
+    name: Docker Build & Compose Validation
+    needs: [frontend-checks, backend-checks]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Compose Configuration
+        run: |
+          echo "Validating compose.yaml syntax and configuration schema..."
+          docker compose config --quiet
+          echo "compose.yaml syntax is valid."
+
+      - name: Build Frontend Docker Image
+        run: |
+          echo "Building platformops-frontend Docker image (multi-stage Nginx)..."
+          docker build -t platformops-frontend:ci -f Frontend/Dockerfile Frontend/
+
+      - name: Build Backend Docker Image
+        run: |
+          echo "Building platformops-backend Docker image (multi-stage Temurin JRE)..."
+          docker build -t platformops-backend:ci -f Backend/Dockerfile Backend/
+
+      - name: Verify Built Images
+        run: |
+          docker images | grep -E "platformops-(frontend|backend)"
+          echo "=================================================================="
+          echo "Docker image build validation PASSED."
+          echo "Images are NOT pushed to a registry at this stage (reserved for CD)."
+          echo "=================================================================="
