@@ -19,8 +19,9 @@ import java.util.Optional;
 public interface DeploymentRepository extends JpaRepository<Deployment, Long>, JpaSpecificationExecutor<Deployment> {
 
     @Override
+    @org.springframework.lang.NonNull
     @EntityGraph(attributePaths = {"application", "environment", "triggeredBy"})
-    Page<Deployment> findAll(Specification<Deployment> spec, Pageable pageable);
+    Page<Deployment> findAll(@org.springframework.lang.Nullable Specification<Deployment> spec, @org.springframework.lang.NonNull Pageable pageable);
 
     @EntityGraph(attributePaths = {"application", "environment", "triggeredBy", "rollbackOf"})
     @Query("select d from Deployment d where d.id = :id")

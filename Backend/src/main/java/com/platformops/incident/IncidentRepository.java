@@ -15,8 +15,9 @@ import java.util.Optional;
 public interface IncidentRepository extends JpaRepository<Incident, Long>, JpaSpecificationExecutor<Incident> {
 
     @Override
+    @org.springframework.lang.NonNull
     @EntityGraph(attributePaths = {"application", "environment", "assignee", "reportedBy"})
-    Page<Incident> findAll(Specification<Incident> spec, Pageable pageable);
+    Page<Incident> findAll(@org.springframework.lang.Nullable Specification<Incident> spec, @org.springframework.lang.NonNull Pageable pageable);
 
     @EntityGraph(attributePaths = {"application", "environment", "assignee", "reportedBy", "deployment"})
     @Query("select i from Incident i where i.id = :id")

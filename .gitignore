@@ -1,5 +1,113 @@
-# local helper folders
+# ==============================================================================
+# PlatformOps — Root .gitignore
+# Multi-tier full-stack repository (React Vite + Spring Boot Java + PostgreSQL)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Environment & Secrets (NEVER track real credentials, tokens, or private keys)
+# ------------------------------------------------------------------------------
+.env
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example
+*.pem
+*.key
+*.pkcs12
+*.pfx
+*.cert
+*.crt
+*.id_rsa
+*.id_ed25519
+
+# ------------------------------------------------------------------------------
+# Frontend (React + Vite + Node.js)
+# ------------------------------------------------------------------------------
+Frontend/node_modules/
+Frontend/dist/
+Frontend/dist-ssr/
+node_modules/
+dist/
+dist-ssr/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.eslintcache
+.stylelintcache
+.tsbuildinfo
+
+# ------------------------------------------------------------------------------
+# Backend (Java / Spring Boot / Maven)
+# ------------------------------------------------------------------------------
+Backend/target/
+target/
+*.class
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+hs_err_pid*
+replay_pid*
+
+# ------------------------------------------------------------------------------
+# Logs & Runtime Artifacts
+# ------------------------------------------------------------------------------
+*.log
+logs/
+Backend/logs/
+Frontend/logs/
+
+# ------------------------------------------------------------------------------
+# IDEs & Developer Tooling
+# ------------------------------------------------------------------------------
+# Visual Studio Code
+.vscode/
+*.code-workspace
+!.vscode/extensions.json
+
+# JetBrains IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# ------------------------------------------------------------------------------
+# Operating System Artifacts
+# ------------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+[Dd]esktop.ini
+
+# ------------------------------------------------------------------------------
+# Local Helper & Design Folders
+# ------------------------------------------------------------------------------
 Claude outputs/
 setup/
-.env
-*.log
+scratch/
+tmp/
+temp/
