@@ -1,0 +1,36 @@
+# ==============================================================================
+# PlatformOps — Dedicated Jenkins CI/CD Controller Stack
+# Stage 4: Jenkins CI/CD Orchestration
+# Note: Logically isolated from the application stack (compose.yaml).
+# ==============================================================================
+name: platformops-jenkins
+
+services:
+  jenkins:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: platformops-jenkins:latest
+    container_name: platformops-jenkins
+    restart: unless-stopped
+    ports:
+      # Map host 8088 to container 8080 (avoids port 8080 collision on host)
+      - "8088:8080"
+      - "50000:50000"
+    environment:
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false -Djava.awt.headless=true
+      - JENKINS_OPTS=--httpPort=8080
+    volumes:
+      # Persistent Jenkins home volume
+      - jenkins_data:/var/jenkins_home
+      # Docker socket mount for building application container images
+      # SECURITY WARNING: Grants Jenkins control over host Docker daemon.
+      # Documented under Stage 4 educational architecture guidelines.
+      - /var/run/docker.sock:/var/run/docker.sock
+    group_add:
+      # Grant socket read/write permissions to jenkins process
+      - "0"
+
+volumes:
+  jenkins_data:
+    name: platformops_jenkins_data
