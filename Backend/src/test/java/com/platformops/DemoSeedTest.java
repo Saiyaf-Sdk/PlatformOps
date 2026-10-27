@@ -17,7 +17,7 @@ class DemoSeedTest extends ApiTestBase {
     @Test
     void seededPlatformIsUsable() throws Exception {
         String t = login(DemoDataSeeder.ADMIN_EMAIL, DemoDataSeeder.ADMIN_PASSWORD).get("accessToken").asText();
-        get("/api/v1/applications", t).andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(999));
+        get("/api/v1/applications", t).andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(6));
         get("/api/v1/incidents?openOnly=true", t).andExpect(jsonPath("$.totalElements").value(2));
         get("/api/v1/dashboard/summary", t)
                 .andExpect(jsonPath("$.kpis.applications").value(6))
