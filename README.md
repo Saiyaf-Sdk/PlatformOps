@@ -19,6 +19,7 @@
 | **Backend** | Java 21, Spring Boot 3.4.5, Maven, Spring Security (JWT + BCrypt), Spring Data JPA, Flyway |
 | **Database** | PostgreSQL 15+ (Production/Local), H2 In-Memory (Automated Integration Tests) |
 | **Containerization** | Docker (Multi-stage builds for API and Frontend) |
+| **CI/CD Orchestration** | GitHub Actions (PR Validation), Jenkins LTS (Release Pipeline, Port 8088), Trivy Scanner |
 | **API Documentation** | OpenAPI 3.0, Swagger UI (`/swagger-ui.html`) |
 
 ---
@@ -185,7 +186,18 @@ PlatformOps/
 ├── .gitignore                      # Root Git ignore rules (Frontend, Backend, IDEs)
 ├── .env.example                    # Root full-stack environment variables template
 ├── CONTRIBUTING.md                 # Two-member Git & GitHub development workflow
+├── Jenkinsfile                     # Declarative 10-stage release pipeline (CI/CD)
 ├── README.md                       # Main project documentation
+├── compose.yaml                    # Root multi-container local stack (Postgres, Backend, Frontend)
+├── jenkins/                        # Dedicated Jenkins controller orchestration
+│   ├── Dockerfile                  # Jenkins LTS JDK21 + Docker static CLI + Node 22
+│   ├── compose.yaml                # Isolated Jenkins Compose stack (Port 8088)
+│   └── init.groovy.d/
+│       └── 01-security-and-job.groovy # Auto-provision admin, crumb, and pipeline job
+├── docs/                           # Architectural and operational documentation
+│   ├── docker-compose.md           # Docker Compose local stack architecture
+│   ├── github-actions.md           # GitHub Actions pre-merge validation
+│   └── jenkins.md                  # Jenkins release pipeline & architecture
 ├── Backend/
 │   ├── .dockerignore               # Docker build exclusions for Backend
 │   ├── .env.example                # Backend environment template
@@ -290,6 +302,14 @@ PlatformOps utilizes GitHub Actions for automated pre-merge pull request validat
 
 > Complete workflow architecture, required branch protections, and troubleshooting are documented in [docs/github-actions.md](docs/github-actions.md).
 
+### Continuous Delivery & Release Pipeline (Jenkins)
+PlatformOps provides an enterprise Jenkins release pipeline orchestrated via a dedicated container on host port 8088:
+- **10 Declarative Pipeline Stages**: SCM Checkout, Toolchain Dump, Node 22/npm install, Frontend lint & build, Spring Boot test (35 tests) & packaging, Multi-stage Docker builds, Trivy container vulnerability scan, Image tagging (`<sha>`, `build-<num>`, `latest`).
+- **Automated Post Actions**: Surefire XML test report retention, Backend `.jar` & Frontend `dist/` bundle archiving, workspace hygiene (`deleteDir()`).
+- **Webhook & API Automation**: GitHub push webhook integration and CSRF-protected REST API build triggers.
+
+> Complete Jenkins architecture, port configuration, and failure testing runbook are documented in [docs/jenkins.md](docs/jenkins.md).
+
 ---
 
 ## 11. Future DevOps Roadmap
@@ -299,7 +319,7 @@ The PlatformOps project follows a progressive, multi-stage DevOps implementation
 - [x] **Stage 1 — Git & GitHub Collaboration Workflow**
 - [x] **Stage 2 — Docker Compose Multi-Service Local Stack**
 - [x] **Stage 3 — GitHub Actions Automated CI Pipeline**
-- [ ] **Stage 4 — Jenkins Enterprise Pipeline Automation**
+- [x] **Stage 4 — Jenkins Enterprise Pipeline Automation**
 - [ ] **Stage 5 — AWS Cloud & Amazon ECR Container Registry**
 - [ ] **Stage 6 — Terraform Infrastructure as Code (IaC)**
 - [ ] **Stage 7 — Kubernetes Orchestration & Argo CD GitOps**
