@@ -181,14 +181,19 @@ pipeline {
     // =========================================================================
     post {
         always {
-            echo 'Collecting Surefire test reports...'
-            junit allowEmptyResults: true, testResults: 'Backend/target/surefire-reports/*.xml'
+            echo 'Archiving Surefire test reports, JAR packages, and frontend bundles...'
+            archiveArtifacts allowEmptyArchive: true, artifacts: 'Backend/target/surefire-reports/*.xml, Backend/target/*.jar, Frontend/dist/**'
 
-            echo 'Archiving build artifacts...'
-            archiveArtifacts allowEmptyArchive: true, artifacts: 'Backend/target/*.jar, Frontend/dist/**'
+            script {
+                try {
+                    junit allowEmptyResults: true, testResults: 'Backend/target/surefire-reports/*.xml'
+                } catch (Throwable t) {
+                    echo "JUnit test result archiver plugin not present: ${t.message}. Test XML reports safely archived in artifacts."
+                }
+            }
 
             echo 'Cleaning workspace...'
-            cleanWs deleteDirs: true, notFailBuild: true
+            deleteDir()
         }
         success {
             echo "========================================================"
