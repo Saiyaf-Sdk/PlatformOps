@@ -4,10 +4,13 @@ export type Role = 'ADMIN' | 'DEVOPS' | 'DEVELOPER' | 'VIEWER';
 export type AppStatus = 'HEALTHY' | 'WARNING' | 'CRITICAL';
 export type EnvCode = 'DEV' | 'STAGING' | 'PRODUCTION';
 export type EnvStatus = 'HEALTHY' | 'DEGRADED' | 'DOWN';
-export type DeploymentStatus = 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED';
+export type DeploymentStatus = 'PENDING_APPROVAL' | 'REJECTED' | 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED';
 export type Stage = 'BUILD' | 'IMAGE' | 'DEPLOY' | 'VERIFY';
 export type Severity = 'SEV1' | 'SEV2' | 'SEV3' | 'SEV4';
 export type IncidentStatus = 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED';
+export type ResourceType = 'DATABASE' | 'CACHE' | 'STORAGE' | 'SERVICE';
+export type ResourceSize = 'SMALL' | 'STANDARD' | 'LARGE';
+export type RequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export interface Page<T> {
   content: T[];
@@ -147,6 +150,22 @@ export interface DashboardSummary {
   environments: Environment[];
   recentDeployments: Deployment[];
   generatedAt: string;
+}
+
+export interface InfrastructureRequestItem {
+  id: number;
+  reference: string;
+  application: AppRef;
+  environment: EnvCode;
+  resourceType: ResourceType;
+  resourceSize: ResourceSize;
+  justification: string;
+  status: RequestStatus;
+  requestedBy: UserRef;
+  reviewedBy?: UserRef;
+  decisionNote?: string;
+  createdAt: string;
+  reviewedAt?: string;
 }
 
 export interface LiveEvent<T = unknown> {

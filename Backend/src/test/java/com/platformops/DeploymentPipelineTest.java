@@ -48,6 +48,7 @@ class DeploymentPipelineTest extends ApiTestBase {
 
         assertThat(waitFinished(t, deploy(t, app, "STAGING", "v1.0.0")).get("status").asText()).isEqualTo("SUCCEEDED");
         long prodId = deploy(t, app, "PRODUCTION", "v1.0.0");
+        postJson("/api/v1/deployments/" + prodId + "/approve", t, Map.of("note", "Approved for production"));
         assertThat(waitFinished(t, prodId).get("status").asText()).isEqualTo("SUCCEEDED");
 
         get("/api/v1/applications/" + app, t)
@@ -67,7 +68,9 @@ class DeploymentPipelineTest extends ApiTestBase {
             waitFinished(t, deploy(t, app, "STAGING", v));
         }
         // staging run of the -fail build fails too, so force isn't possible for DevOps; stage a good one first
-        waitFinished(t, deploy(t, app, "PRODUCTION", "v2.0.0"));
+        long goodProdId = deploy(t, app, "PRODUCTION", "v2.0.0");
+        postJson("/api/v1/deployments/" + goodProdId + "/approve", t, Map.of("note", "Approved for production"));
+        waitFinished(t, goodProdId);
 
         String admin = tokenFor(Role.ADMIN);
         var forced = postJson("/api/v1/deployments", admin, Map.of("applicationId", app, "environment", "PRODUCTION",

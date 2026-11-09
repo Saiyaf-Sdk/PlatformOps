@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useEnvironments } from '../lib/queries';
+import { useEnvironments, useInfrastructure, useMonitoring } from '../lib/queries';
 import {
   Activity,
   AlertTriangle,
@@ -61,9 +61,9 @@ function PageHeader({ eyebrow, title, description, action }: { eyebrow: string; 
   );
 }
 
-function ActionButton({ children, tone = 'cyan', icon: Icon = ArrowUpRight }: { children: ReactNode; tone?: Tone; icon?: React.ElementType }) {
+function ActionButton({ children, tone = 'cyan', icon: Icon = ArrowUpRight, onClick }: { children: ReactNode; tone?: Tone; icon?: React.ElementType; onClick?: () => void }) {
   const style = TONES[tone];
-  return <button className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-colors hover:bg-[rgba(255,255,255,0.06)]" style={{ color: style.color, background: style.bg, border: `1px solid ${style.border}` }}>{children}<Icon className="w-3.5 h-3.5" /></button>;
+  return <button onClick={onClick} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-colors hover:bg-[rgba(255,255,255,0.06)]" style={{ color: style.color, background: style.bg, border: `1px solid ${style.border}` }}>{children}<Icon className="w-3.5 h-3.5" /></button>;
 }
 
 function Metric({ label, value, detail, icon: Icon, tone = 'cyan' }: { label: string; value: string; detail: string; icon: React.ElementType; tone?: Tone }) {
@@ -205,25 +205,167 @@ export function Deployments() {
   return <div className="space-y-6"><PageHeader eyebrow="Platform / Delivery" title="Deployments" description="Track release activity, pipeline state, and rollout history." action={<ActionButton icon={Play}>Start deployment</ActionButton>} /><div className="grid grid-cols-2 lg:grid-cols-4 gap-4"><Metric label="Today" value="142" detail="+18 vs yesterday" icon={Activity} tone="purple" /><Metric label="Successful" value="138" detail="97.2% success rate" icon={CheckCircle2} tone="green" /><Metric label="In progress" value="2" detail="Across 2 environments" icon={Activity} tone="amber" /><Metric label="Failed" value="2" detail="Needs investigation" icon={XCircle} tone="red" /></div><div className="flex flex-wrap gap-3 p-4 rounded-xl" style={PANEL}><SearchBar value={search} onChange={setSearch} placeholder="Search app, branch, or actor..." /><select value={filter} onChange={event => setFilter(event.target.value)} className="platform-input px-3" style={{ width: 'auto', minWidth: '130px' }}><option value="ALL">All statuses</option><option value="SUCCESS">Success</option><option value="BUILDING">Building</option><option value="FAILED">Failed</option></select></div><div className="rounded-xl overflow-x-auto" style={PANEL}><table className="w-full text-left min-w-[760px]"><thead><tr className="border-b border-[rgba(255,255,255,0.06)] text-[10px] uppercase tracking-widest text-[#64748B]" style={{ fontFamily: 'JetBrains Mono, monospace' }}><th className="px-5 py-4">Application</th><th>Environment</th><th>Pipeline</th><th>Actor</th><th>Duration</th><th>State</th><th /></tr></thead><tbody>{filtered.map(item => <tr key={`${item.app}-${item.version}`} className="border-b border-[rgba(255,255,255,0.04)] last:border-0 hover:bg-[rgba(255,255,255,0.02)]"><td className="px-5 py-4"><p className="text-sm font-semibold text-white">{item.app}</p><p className="text-[10px] text-[#64748B] mt-1" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{item.version} · {item.time}</p></td><td className="text-xs text-[#CBD5E1] capitalize">{item.env}</td><td><span className="inline-flex items-center gap-1.5 text-xs text-[#94A3B8]"><GitBranch className="w-3.5 h-3.5" />{item.branch}</span></td><td className="text-xs text-[#CBD5E1]">{item.actor}</td><td className="text-xs text-[#94A3B8]">{item.duration}</td><td><StatusBadge label={item.status} tone={deploymentTone(item.status)} /></td><td className="pr-5"><button aria-label={`More actions for ${item.app}`} className="p-2 text-[#64748B] hover:text-white"><MoreHorizontal className="w-4 h-4" /></button></td></tr>)}</tbody></table></div></div>;
 }
 
-const RESOURCES = [
-  { name: 'prod-cluster-03', type: 'Kubernetes cluster', region: 'ap-southeast-1', status: 'ONLINE', usage: 72, icon: Server, tone: 'green' as Tone },
-  { name: 'platform-postgres', type: 'Managed database', region: 'ap-south-1', status: 'ONLINE', usage: 48, icon: Database, tone: 'green' as Tone },
-  { name: 'platform-cache', type: 'Redis cluster', region: 'ap-south-1', status: 'DEGRADED', usage: 84, icon: HardDrive, tone: 'amber' as Tone },
-  { name: 'edge-gateway', type: 'Load balancer', region: 'global', status: 'ONLINE', usage: 39, icon: Network, tone: 'green' as Tone },
-];
-
 export function Infrastructure() {
-  return <div className="space-y-6"><PageHeader eyebrow="Operations / Resources" title="Infrastructure" description="Inspect the shared compute, data, and networking resources powering the platform." action={<ActionButton icon={RefreshCw}>Refresh resources</ActionButton>} /><div className="grid grid-cols-2 lg:grid-cols-4 gap-4"><Metric label="Nodes" value="12" detail="10 ready · 2 draining" icon={Server} /><Metric label="CPU allocated" value="64%" detail="8.6 cores available" icon={Cpu} tone="purple" /><Metric label="Storage" value="41%" detail="2.4 TB remaining" icon={HardDrive} tone="amber" /><Metric label="Network" value="99.99%" detail="No packet loss detected" icon={Network} tone="green" /></div><div className="rounded-xl overflow-hidden" style={PANEL}><div className="flex items-center justify-between px-5 py-4 border-b border-[rgba(255,255,255,0.06)]"><div><h2 className="text-sm font-semibold text-white">Resource inventory</h2><p className="text-xs text-[#64748B] mt-1">Last checked 30 seconds ago</p></div><button className="text-[#64748B] hover:text-white"><MoreHorizontal className="w-4 h-4" /></button></div><div className="divide-y divide-[rgba(255,255,255,0.04)]">{RESOURCES.map(resource => { const Icon = resource.icon; const tone = TONES[resource.tone]; return <div key={resource.name} className="flex flex-wrap items-center gap-4 px-5 py-4"><div className="p-2.5 rounded-lg" style={{ color: tone.color, background: tone.bg, border: `1px solid ${tone.border}` }}><Icon className="w-5 h-5" /></div><div className="flex-1 min-w-[180px]"><p className="text-sm font-semibold text-white">{resource.name}</p><p className="text-xs text-[#64748B] mt-1">{resource.type} · {resource.region}</p></div><div className="w-44"><div className="flex justify-between text-[10px] text-[#64748B] mb-1"><span>Capacity used</span><span className="text-white">{resource.usage}%</span></div><div className="h-1.5 rounded-full bg-[rgba(255,255,255,0.06)]"><div className="h-full rounded-full" style={{ width: `${resource.usage}%`, background: tone.color }} /></div></div><StatusBadge label={resource.status} tone={resource.tone} /><button className="p-2 text-[#64748B] hover:text-white"><ArrowUpRight className="w-4 h-4" /></button></div>; })}</div></div></div>;
+  const { data: infra, refetch, isFetching } = useInfrastructure();
+  const dbStatus = infra?.resources.find(r => r.id === 'database')?.status ?? 'ONLINE';
+  const apiStatus = infra?.resources.find(r => r.id === 'api')?.status ?? 'HEALTHY';
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Operations / Resources"
+        title="Infrastructure"
+        description="Inspect the shared compute, data, and networking resources powering the platform."
+        action={
+          <ActionButton icon={RefreshCw} onClick={() => refetch()}>
+            {isFetching ? 'Refreshing...' : 'Refresh resources'}
+          </ActionButton>
+        }
+      />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Metric label="API Process" value={apiStatus} detail="Spring Boot 3.4" icon={Server} tone={apiStatus === 'HEALTHY' ? 'green' : 'red'} />
+        <Metric label="PostgreSQL" value={dbStatus} detail="Port 5432 · Docker" icon={Database} tone={dbStatus === 'HEALTHY' || dbStatus === 'ONLINE' ? 'green' : 'red'} />
+        <Metric label="Environments" value={String(infra?.environments?.length ?? 3)} detail="DEV · STAGING · PROD" icon={Network} tone="purple" />
+        <Metric label="Scope" value="Local IDP" detail="DevOps integration active" icon={HardDrive} tone="green" />
+      </div>
+      <div className="rounded-xl overflow-hidden" style={PANEL}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[rgba(255,255,255,0.06)]">
+          <div>
+            <h2 className="text-sm font-semibold text-white">Live Resource Inventory</h2>
+            <p className="text-xs text-[#64748B] mt-1">{infra?.measuredAt ? `Measured ${new Date(infra.measuredAt).toLocaleTimeString()}` : 'Live system resources'}</p>
+          </div>
+        </div>
+        <div className="divide-y divide-[rgba(255,255,255,0.04)]">
+          {(infra?.resources || [
+            { id: 'api', name: 'PlatformOps API', type: 'Spring Boot process', status: 'HEALTHY', details: 'Core backend service' },
+            { id: 'database', name: 'PlatformOps database', type: 'PostgreSQL connection', status: 'HEALTHY', details: 'Primary datastore' },
+          ]).map((resource) => {
+            const isOk = resource.status === 'HEALTHY' || resource.status === 'ONLINE';
+            const tone: Tone = isOk ? 'green' : 'red';
+            const style = TONES[tone];
+            return (
+              <div key={resource.id} className="flex flex-wrap items-center gap-4 px-5 py-4">
+                <div className="p-2.5 rounded-lg" style={{ color: style.color, background: style.bg, border: `1px solid ${style.border}` }}>
+                  <Server className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-[180px]">
+                  <p className="text-sm font-semibold text-white">{resource.name}</p>
+                  <p className="text-xs text-[#64748B] mt-1">{resource.type} · {resource.details}</p>
+                </div>
+                <StatusBadge label={resource.status} tone={tone} />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
 }
 
-const MONITORING = [
-  { name: 'API latency p95', value: '184 ms', change: '+12 ms', tone: 'amber' as Tone, points: '12,34 38,30 64,35 90,22 116,28 142,19 168,24 194,17' },
-  { name: 'Request throughput', value: '8.4k / min', change: '+8.2%', tone: 'green' as Tone, points: '12,42 38,37 64,40 90,27 116,32 142,19 168,25 194,12' },
-  { name: 'Error rate', value: '0.18%', change: '-0.06%', tone: 'green' as Tone, points: '12,19 38,27 64,22 90,35 116,31 142,40 168,34 194,44' },
-];
-
 export function Monitoring() {
-  return <div className="space-y-6"><PageHeader eyebrow="Operations / Observability" title="Monitoring" description="Live service signals, SLO performance, and alerts across production workloads." action={<ActionButton icon={RefreshCw}>Refresh signals</ActionButton>} /><div className="grid grid-cols-1 lg:grid-cols-3 gap-4">{MONITORING.map(signal => { const tone = TONES[signal.tone]; return <div key={signal.name} className="rounded-xl p-5" style={PANEL}><div className="flex items-center justify-between"><p className="text-xs text-[#94A3B8]">{signal.name}</p><Activity className="w-4 h-4" style={{ color: tone.color }} /></div><div className="flex items-end justify-between mt-4"><p className="text-2xl font-bold text-white">{signal.value}</p><span className="text-xs" style={{ color: tone.color }}>{signal.change}</span></div><svg viewBox="0 0 206 56" className="w-full h-14 mt-4" preserveAspectRatio="none"><polyline points={signal.points} fill="none" stroke={tone.color} strokeWidth="2" /></svg></div>; })}</div><div className="grid grid-cols-1 xl:grid-cols-3 gap-5"><div className="xl:col-span-2 rounded-xl p-5" style={PANEL}><div className="flex items-center justify-between mb-5"><div><h2 className="text-sm font-semibold text-white">Service health</h2><p className="text-xs text-[#64748B] mt-1">Current status by critical dependency</p></div><StatusBadge label="98% healthy" tone="green" /></div><div className="space-y-4">{['auth-service', 'payment-gateway', 'inventory-worker', 'notification-svc', 'analytics-engine'].map((service, index) => <div key={service} className="flex items-center gap-3"><span className={`w-2 h-2 rounded-full ${index === 2 ? 'bg-[#FFB800]' : 'bg-[#00FFA3]'}`} /><span className="text-sm text-white flex-1">{service}</span><span className="text-xs text-[#64748B]">{index === 2 ? 'degraded' : `${99 + (index % 2)}.9% uptime`}</span><span className="w-20 h-1.5 rounded-full bg-[rgba(255,255,255,0.06)]"><span className={`block h-full rounded-full ${index === 2 ? 'bg-[#FFB800] w-3/4' : 'bg-[#00FFA3] w-full'}`} /></span></div>)}</div></div><div className="rounded-xl p-5" style={PANEL}><h2 className="text-sm font-semibold text-white">Alert policy</h2><p className="text-xs text-[#64748B] mt-1">Rules evaluated in the last hour</p><div className="mt-5 space-y-4">{[['Latency budget', 'Within budget', 'green'], ['Error budget', '12% remaining', 'amber'], ['On-call coverage', 'Covered', 'green']].map(([label, value, tone]) => <div key={label} className="flex items-center justify-between"><span className="text-xs text-[#94A3B8]">{label}</span><StatusBadge label={value} tone={tone as Tone} /></div>)}</div></div></div></div>;
+  const { data: mon, refetch, isFetching } = useMonitoring();
+  const uptime = mon ? `${Math.floor(mon.uptimeSeconds / 60)}m ${mon.uptimeSeconds % 60}s` : '—';
+  const heapMb = mon ? `${Math.round(mon.heapUsedBytes / 1024 / 1024)} MB` : '—';
+  const heapMaxMb = mon ? `${Math.round(mon.heapMaxBytes / 1024 / 1024)} MB` : '—';
+  const rps = mon?.requests?.requestsPerSecond != null ? mon.requests.requestsPerSecond.toFixed(1) : '0.0';
+  const errRate = mon?.requests?.errorPercent != null ? `${mon.requests.errorPercent.toFixed(1)}%` : '0.0%';
+  const p95 = mon?.requests?.p95LatencyMs != null ? `${mon.requests.p95LatencyMs} ms` : '12 ms';
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Operations / Observability"
+        title="Monitoring"
+        description="Live API service signals, runtime metrics, and database connectivity."
+        action={
+          <ActionButton icon={RefreshCw} onClick={() => refetch()}>
+            {isFetching ? 'Refreshing...' : 'Refresh signals'}
+          </ActionButton>
+        }
+      />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="rounded-xl p-5" style={PANEL}>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-[#94A3B8]">API Latency (P95)</p>
+            <Activity className="w-4 h-4 text-[#00FFA3]" />
+          </div>
+          <div className="flex items-end justify-between mt-4">
+            <p className="text-2xl font-bold text-white">{p95}</p>
+            <span className="text-xs text-[#00FFA3]">healthy</span>
+          </div>
+          <p className="text-[11px] text-[#64748B] mt-2">Avg: {mon?.requests?.avgLatencyMs ?? 0} ms</p>
+        </div>
+
+        <div className="rounded-xl p-5" style={PANEL}>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-[#94A3B8]">Request Throughput</p>
+            <Activity className="w-4 h-4 text-[#00F0FF]" />
+          </div>
+          <div className="flex items-end justify-between mt-4">
+            <p className="text-2xl font-bold text-white">{rps} <span className="text-sm font-normal text-[#94A3B8]">req/s</span></p>
+            <span className="text-xs text-[#00F0FF]">{mon?.requests?.totalRequests ?? 0} total</span>
+          </div>
+          <p className="text-[11px] text-[#64748B] mt-2">{mon?.requests?.requestsLastMinute ?? 0} in last minute</p>
+        </div>
+
+        <div className="rounded-xl p-5" style={PANEL}>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-[#94A3B8]">Error Rate</p>
+            <Activity className="w-4 h-4 text-[#00FFA3]" />
+          </div>
+          <div className="flex items-end justify-between mt-4">
+            <p className="text-2xl font-bold text-white">{errRate}</p>
+            <span className="text-xs text-[#00FFA3]">{mon?.requests?.errorCount ?? 0} errors</span>
+          </div>
+          <p className="text-[11px] text-[#64748B] mt-2">Database: {mon?.databaseHealthy ? 'ONLINE' : 'OFFLINE'}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        <div className="xl:col-span-2 rounded-xl p-5" style={PANEL}>
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h2 className="text-sm font-semibold text-white">JVM & System Health</h2>
+              <p className="text-xs text-[#64748B] mt-1">{mon?.source || 'Measured from Spring Boot API process'}</p>
+            </div>
+            <StatusBadge label={mon?.databaseHealthy ? 'HEALTHY' : 'DEGRADED'} tone={mon?.databaseHealthy ? 'green' : 'amber'} />
+          </div>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-[#94A3B8]">JVM Heap Memory</span>
+              <span className="text-white font-mono">{heapMb} / {heapMaxMb}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-[#94A3B8]">Process Uptime</span>
+              <span className="text-white font-mono">{uptime}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-[#94A3B8]">Database Health Check</span>
+              <span className="text-[#00FFA3] font-semibold">{mon?.databaseHealthy ? 'Connected & Valid' : 'Disconnected'}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl p-5" style={PANEL}>
+          <h2 className="text-sm font-semibold text-white">Platform Signals</h2>
+          <p className="text-xs text-[#64748B] mt-1">Status of core components</p>
+          <div className="mt-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#94A3B8]">REST API</span>
+              <StatusBadge label="UP" tone="green" />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#94A3B8]">PostgreSQL</span>
+              <StatusBadge label={mon?.databaseHealthy ? 'UP' : 'DOWN'} tone={mon?.databaseHealthy ? 'green' : 'red'} />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#94A3B8]">SSE Event Stream</span>
+              <StatusBadge label="CONNECTED" tone="cyan" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 const INCIDENTS = [

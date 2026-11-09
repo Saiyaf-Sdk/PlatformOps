@@ -2,7 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { api } from './api';
 import type {
   Application, AppStatus, AuditEvent, DashboardSummary, Deployment, DeploymentLog, DeploymentStatus, EnvCode,
-  Environment, Incident, IncidentStatus, Page, Role, Severity, User,
+  Environment, Incident, IncidentStatus, InfrastructureRequestItem, Page, ResourceSize, ResourceType, Role, Severity, User,
 } from './types';
 
 const clean = (o: Record<string, unknown>) =>
@@ -113,6 +113,15 @@ export function useCancelDeployment() {
   });
 }
 
+export function useReviewDeployment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, decision, note }: { id: number; decision: 'approve' | 'reject'; note?: string }) =>
+      (await api.post<Deployment>(`/deployments/${id}/${decision}`, { note })).data,
+    onSuccess: (d) => { invalidateDeployments(qc); qc.setQueryData(['deployment', d.id], d); },
+  });
+}
+
 // ── incidents ─────────────────────────────────────────────
 export interface IncidentFilters { q?: string; status?: IncidentStatus | 'ALL'; severity?: Severity | 'ALL'; openOnly?: boolean; page?: number }
 
@@ -187,3 +196,76 @@ export function useUnlockUser() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
   });
 }
+
+// ── infrastructure & monitoring ───────────────────────────
+export const useInfrastructureRequests = (status?: string) =>
+  useQuery({
+    queryKey: ['infrastructure-requests', status],
+    queryFn: async () => (await api.get<Page<InfrastructureRequestItem>>('/infrastructure-requests', { params: clean({ status, size: 50 }) })).data,
+  });
+
+export interface NewInfrastructureRequest {
+  applicationId: number;
+  environment: EnvCode;
+  resourceType: ResourceType;
+  resourceSize: ResourceSize;
+  justification: string;
+}
+
+export function useCreateInfrastructureRequest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: NewInfrastructureRequest) => (await api.post<InfrastructureRequestItem>('/infrastructure-requests', body)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['infrastructure-requests'] }),
+  });
+}
+
+export function useReviewInfrastructureRequest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, decision, note }: { id: number; decision: 'approve' | 'reject'; note?: string }) =>
+      (await api.post<InfrastructureRequestItem>(`/infrastructure-requests/${id}/${decision}`, { note })).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['infrastructure-requests'] }),
+  });
+}
+
+export interface LiveInfrastructureData {
+  resources: { id: string; name: string; type: string; status: string; details: string }[];
+  environments: Environment[];
+  measuredAt: string;
+  scope: string;
+}
+
+export const useInfrastructure = () =>
+  useQuery({
+    queryKey: ['infrastructure'],
+    queryFn: async () => (await api.get<LiveInfrastructureData>('/infrastructure')).data,
+    refetchInterval: 30_000,
+  });
+
+export interface LiveMonitoringData {
+  source: string;
+  requests: {
+    totalRequests: number;
+    activeRequests: number;
+    requestsLastMinute: number;
+    requestsPerSecond: number;
+    errorCount: number;
+    errorPercent: number;
+    avgLatencyMs: number;
+    p95LatencyMs: number;
+  };
+  heapUsedBytes: number;
+  heapMaxBytes: number;
+  cpuPercent?: number;
+  uptimeSeconds: number;
+  databaseHealthy: boolean;
+  measuredAt: string;
+}
+
+export const useMonitoring = () =>
+  useQuery({
+    queryKey: ['monitoring'],
+    queryFn: async () => (await api.get<LiveMonitoringData>('/monitoring')).data,
+    refetchInterval: 10_000,
+  });

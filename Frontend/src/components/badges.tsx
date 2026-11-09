@@ -2,6 +2,8 @@ import type { AppStatus, DeploymentStatus, EnvCode, IncidentStatus, Severity } f
 import { ENV_META } from '../lib/format';
 
 const DEPLOY: Record<DeploymentStatus, { text: string; cls: string; live?: boolean }> = {
+  PENDING_APPROVAL: { text: 'PENDING APPROVAL', cls: 'text-warn', live: true },
+  REJECTED: { text: 'REJECTED', cls: 'text-bad' },
   QUEUED: { text: 'queued', cls: 'text-fg-2' },
   RUNNING: { text: 'running', cls: 'text-sky', live: true },
   SUCCEEDED: { text: 'arrived', cls: 'text-ok' },

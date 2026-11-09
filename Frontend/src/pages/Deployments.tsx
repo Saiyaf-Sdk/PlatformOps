@@ -9,7 +9,7 @@ import { EmptyState, ErrorState, Modal, Pager, Segmented, Select, Skeleton, Spin
 import DeployModal from '../components/DeployModal';
 import { useToast } from '../components/Toaster';
 import { useAuth } from '../context/AuthContext';
-import { useApplications, useCancelDeployment, useDeployment, useDeploymentLogs, useDeployments, useRollback } from '../lib/queries';
+import { useApplications, useCancelDeployment, useDeployment, useDeploymentLogs, useDeployments, useReviewDeployment, useRollback } from '../lib/queries';
 import { errorMessage } from '../lib/api';
 import { clock, dateTime, duration, timeAgo } from '../lib/format';
 import type { Deployment, DeploymentStatus, EnvCode, Stage } from '../lib/types';
@@ -27,7 +27,8 @@ function stageState(d: Deployment, s: Stage): StageState {
   const idx = STAGES.findIndex((x) => x.key === s);
   const cur = d.currentStage ? STAGES.findIndex((x) => x.key === d.currentStage) : -1;
   if (d.status === 'SUCCEEDED') return 'done';
-  if (d.status === 'QUEUED') return 'pending';
+  if (d.status === 'QUEUED' || d.status === 'PENDING_APPROVAL') return 'pending';
+  if (d.status === 'REJECTED') return 'failed';
   if (idx < cur) return 'done';
   if (idx > cur) return 'pending';
   return d.status === 'RUNNING' ? 'active' : d.status === 'FAILED' ? 'failed' : 'cancelled';
@@ -38,7 +39,15 @@ const STATE_COLOR: Record<StageState, string> = {
 };
 
 function Progress({ d }: { d: Deployment }) {
-  const color = d.status === 'FAILED' ? 'var(--bad)' : d.status === 'SUCCEEDED' ? 'var(--ok)' : d.status === 'CANCELLED' ? 'var(--text-3)' : 'var(--sky)';
+  const color = d.status === 'FAILED' || d.status === 'REJECTED'
+    ? 'var(--bad)'
+    : d.status === 'SUCCEEDED'
+      ? 'var(--ok)'
+      : d.status === 'PENDING_APPROVAL'
+        ? 'var(--warn)'
+        : d.status === 'CANCELLED'
+          ? 'var(--text-3)'
+          : 'var(--sky)';
   return (
     <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
       <motion.div className="h-full rounded-full" style={{ background: d.status === 'RUNNING' ? 'var(--grad)' : color, boxShadow: d.status === 'RUNNING' ? '0 0 12px var(--iris)' : undefined }}
@@ -57,8 +66,10 @@ function DeploymentDetail({ id, onClose }: { id: number; onClose: () => void }) 
   const { can } = useAuth();
   const cancel = useCancelDeployment();
   const rollback = useRollback();
+  const review = useReviewDeployment();
   const toast = useToast();
   const logRef = useRef<HTMLDivElement>(null);
+  const [reviewNote, setReviewNote] = useState('');
 
   useEffect(() => {
     const el = logRef.current;
@@ -66,7 +77,26 @@ function DeploymentDetail({ id, onClose }: { id: number; onClose: () => void }) 
   }, [logs?.length]);
 
   const active = d?.status === 'QUEUED' || d?.status === 'RUNNING';
+  const isPendingApproval = d?.status === 'PENDING_APPROVAL';
   const mayAct = d && (can('ADMIN', 'DEVOPS') || (can('DEVELOPER') && d.environment.code !== 'PRODUCTION'));
+  const mayReview = d && can('ADMIN', 'DEVOPS');
+
+  const doReview = async (decision: 'approve' | 'reject') => {
+    try {
+      if (decision === 'reject' && !reviewNote.trim()) {
+        toast({ tone: 'error', title: 'Note required', body: 'Please provide a note explaining the rejection.' });
+        return;
+      }
+      await review.mutateAsync({ id, decision, note: reviewNote.trim() || undefined });
+      toast({
+        tone: decision === 'approve' ? 'info' : 'warn',
+        title: decision === 'approve' ? 'Deployment approved' : 'Deployment rejected',
+        body: `Deployment #${id} was ${decision}d.`,
+      });
+    } catch (e) {
+      toast({ tone: 'error', title: `Couldn’t ${decision} deployment`, body: errorMessage(e) });
+    }
+  };
 
   const doCancel = async () => {
     try { await cancel.mutateAsync(id); toast({ tone: 'info', title: 'Stopping deployment', body: 'It will halt at the next safe point.' }); }
@@ -87,6 +117,45 @@ function DeploymentDetail({ id, onClose }: { id: number; onClose: () => void }) 
         <span className="text-fg-3">#{d.id} · by {d.triggeredBy?.fullName ?? 'system'} · {timeAgo(d.createdAt)}</span></span> : undefined}>
       {!d ? <Skeleton className="h-64" /> : (
         <div className="space-y-6">
+          {/* pending approval banner */}
+          {isPendingApproval && (
+            <div className="rounded-2xl border border-warn/40 bg-warn/10 p-4">
+              <p className="font-semibold text-warn">Awaiting Operational Approval</p>
+              <p className="mt-1 text-xs text-fg-2">
+                Deployments to {d.environment.displayName} require manual review and approval before proceeding through the pipeline.
+              </p>
+              {mayReview ? (
+                <div className="mt-4 space-y-3">
+                  <input
+                    type="text"
+                    value={reviewNote}
+                    onChange={(e) => setReviewNote(e.target.value)}
+                    placeholder="Approval or rejection note..."
+                    className="platform-input w-full"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => doReview('approve')}
+                      disabled={review.isPending}
+                      className="btn btn-primary"
+                    >
+                      {review.isPending ? <Spinner /> : <Check className="h-4 w-4" />} approve & run
+                    </button>
+                    <button
+                      onClick={() => doReview('reject')}
+                      disabled={review.isPending}
+                      className="btn btn-ghost text-bad"
+                    >
+                      {review.isPending ? <Spinner /> : <X className="h-4 w-4" />} reject
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-2 text-xs italic text-fg-3">You need DevOps or Admin role to approve this deployment.</p>
+              )}
+            </div>
+          )}
+
           {/* stage timeline */}
           <div className="grid grid-cols-4 gap-2">
             {STAGES.map((s, i) => {
@@ -204,10 +273,12 @@ export default function Deployments() {
         ]} />
         <Select value={status} onChange={(e) => { setStatus(e.target.value as DeploymentStatus | 'ALL'); setPage(0); }} className="w-full lg:w-44">
           <option value="ALL">any status</option>
+          <option value="PENDING_APPROVAL">pending approval</option>
           <option value="RUNNING">running</option>
           <option value="QUEUED">queued</option>
           <option value="SUCCEEDED">arrived</option>
           <option value="FAILED">halted</option>
+          <option value="REJECTED">rejected</option>
           <option value="CANCELLED">cancelled</option>
         </Select>
         <Select value={appId ?? ''} onChange={(e) => { setParam('app', e.target.value || undefined); setPage(0); }} className="w-full lg:ml-auto lg:w-60">
