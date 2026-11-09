@@ -1,0 +1,613 @@
+{
+  "date": "2026-11-10",
+  "base": "http://127.0.0.1:18081",
+  "proxy": "http://127.0.0.1:18080",
+  "checks": 120,
+  "passed": 117,
+  "failed": 3,
+  "documentedOperations": 33,
+  "exercisedOperations": 33,
+  "unexercisedOperations": [],
+  "results": [
+    {
+      "name": "Backend health",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Readiness health",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Frontend served by Nginx",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Health through Nginx",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "OpenAPI schema",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Protected list rejects anonymous access",
+      "passed": true,
+      "detail": "HTTP 401; expected 401"
+    },
+    {
+      "name": "Invalid bearer token rejected",
+      "passed": true,
+      "detail": "HTTP 401; expected 401"
+    },
+    {
+      "name": "Login admin@platformops.dev",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Current authenticated user",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Demo admin role",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Authenticated API through Nginx",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Admin creates DEVOPS",
+      "passed": true,
+      "detail": "HTTP 201; expected 201"
+    },
+    {
+      "name": "Login audit-devops@example.test",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Admin creates DEVELOPER",
+      "passed": true,
+      "detail": "HTTP 201; expected 201"
+    },
+    {
+      "name": "Login audit-developer@example.test",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Admin creates VIEWER",
+      "passed": true,
+      "detail": "HTTP 201; expected 201"
+    },
+    {
+      "name": "Login audit-viewer@example.test",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "People list and search",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "User details",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Non-admin user creation denied",
+      "passed": true,
+      "detail": "HTTP 403; expected 403"
+    },
+    {
+      "name": "Admin cannot disable self",
+      "passed": true,
+      "detail": "HTTP 409; expected 409"
+    },
+    {
+      "name": "Public signup",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Signup cannot grant ADMIN through extra property",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Duplicate signup rejected",
+      "passed": true,
+      "detail": "HTTP 400; expected 400"
+    },
+    {
+      "name": "Signup should reject one-character password",
+      "passed": false,
+      "detail": "HTTP 200; expected 400"
+    },
+    {
+      "name": "Signup should reject passwords over BCrypt 72-byte limit",
+      "passed": false,
+      "detail": "HTTP 500; expected 400"
+    },
+    {
+      "name": "Register application",
+      "passed": true,
+      "detail": "HTTP 201; expected 201"
+    },
+    {
+      "name": "Duplicate application rejected",
+      "passed": true,
+      "detail": "HTTP 409; expected 409"
+    },
+    {
+      "name": "Invalid application name rejected",
+      "passed": true,
+      "detail": "HTTP 400; expected 400"
+    },
+    {
+      "name": "Viewer application write denied",
+      "passed": true,
+      "detail": "HTTP 403; expected 403"
+    },
+    {
+      "name": "Application search and runtime filters",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Application search returns created service",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Application statistics",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Application details",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Application update",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Developer application update denied",
+      "passed": true,
+      "detail": "HTTP 403; expected 403"
+    },
+    {
+      "name": "Unknown application returns 404",
+      "passed": true,
+      "detail": "HTTP 404; expected 404"
+    },
+    {
+      "name": "Register disposable delete target",
+      "passed": true,
+      "detail": "HTTP 201; expected 201"
+    },
+    {
+      "name": "Application delete",
+      "passed": true,
+      "detail": "HTTP 204; expected 204"
+    },
+    {
+      "name": "Deleted application returns 404",
+      "passed": true,
+      "detail": "HTTP 404; expected 404"
+    },
+    {
+      "name": "Environment list",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Environment pipeline order",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Environment details",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Dashboard summary with Sri Lanka offset",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "SSE via Nginx has event-stream content type",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Create application while SSE connected",
+      "passed": true,
+      "detail": "HTTP 201; expected 201"
+    },
+    {
+      "name": "SSE emits ready and application.created",
+      "passed": true,
+      "detail": "ready, application.created"
+    },
+    {
+      "name": "Production promotion gate",
+      "passed": true,
+      "detail": "HTTP 422; expected 422"
+    },
+    {
+      "name": "Developer production deployment denied",
+      "passed": true,
+      "detail": "HTTP 403; expected 403"
+    },
+    {
+      "name": "Non-admin force denied",
+      "passed": true,
+      "detail": "HTTP 403; expected 403"
+    },
+    {
+      "name": "Viewer deployment denied",
+      "passed": true,
+      "detail": "HTTP 403; expected 403"
+    },
+    {
+      "name": "Invalid deployment version rejected",
+      "passed": true,
+      "detail": "HTTP 400; expected 400"
+    },
+    {
+      "name": "Request DEV v1.0.0",
+      "passed": true,
+      "detail": "HTTP 202; expected 202"
+    },
+    {
+      "name": "Deployment 159 finishes as SUCCEEDED",
+      "passed": true,
+      "detail": "HTTP 200; status SUCCEEDED"
+    },
+    {
+      "name": "Finished deployment cannot be cancelled",
+      "passed": true,
+      "detail": "HTTP 409; expected 409"
+    },
+    {
+      "name": "Request STAGING v1.0.0",
+      "passed": true,
+      "detail": "HTTP 202; expected 202"
+    },
+    {
+      "name": "Deployment 160 finishes as SUCCEEDED",
+      "passed": true,
+      "detail": "HTTP 200; status SUCCEEDED"
+    },
+    {
+      "name": "Request PRODUCTION v1.0.0",
+      "passed": true,
+      "detail": "HTTP 202; expected 202"
+    },
+    {
+      "name": "Deployment 161 finishes as SUCCEEDED",
+      "passed": true,
+      "detail": "HTTP 200; status SUCCEEDED"
+    },
+    {
+      "name": "Request PRODUCTION v1.0.1-fail",
+      "passed": true,
+      "detail": "HTTP 202; expected 202"
+    },
+    {
+      "name": "Deployment 162 finishes as FAILED",
+      "passed": true,
+      "detail": "HTTP 200; status FAILED"
+    },
+    {
+      "name": "Failed deployment opens incident",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Auto incident links failed deployment",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Rollback failed release",
+      "passed": true,
+      "detail": "HTTP 202; expected 202"
+    },
+    {
+      "name": "Deployment 163 finishes as SUCCEEDED",
+      "passed": true,
+      "detail": "HTTP 200; status SUCCEEDED"
+    },
+    {
+      "name": "Rollback restores previous version",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Request DEV v1.0.2-build-fail",
+      "passed": true,
+      "detail": "HTTP 202; expected 202"
+    },
+    {
+      "name": "Deployment 164 finishes as FAILED",
+      "passed": true,
+      "detail": "HTTP 200; status FAILED"
+    },
+    {
+      "name": "Request DEV v1.0.3",
+      "passed": true,
+      "detail": "HTTP 202; expected 202"
+    },
+    {
+      "name": "Cancel active deployment",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Deployment 165 finishes as CANCELLED",
+      "passed": true,
+      "detail": "HTTP 200; status CANCELLED"
+    },
+    {
+      "name": "Deployment list filters",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Deployment logs",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Successful deployment has all pipeline stage logs",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Report incident",
+      "passed": true,
+      "detail": "HTTP 201; expected 201"
+    },
+    {
+      "name": "Incident details",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Developer cannot resolve incident",
+      "passed": true,
+      "detail": "HTTP 403; expected 403"
+    },
+    {
+      "name": "Assign and acknowledge incident",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Acknowledgement sets actor and timestamp",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Resolve incident",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Resolution timestamp persisted",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Reopen incident",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Incident query filters",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Failed login 1",
+      "passed": true,
+      "detail": "HTTP 401; expected 401"
+    },
+    {
+      "name": "Failed login 2",
+      "passed": true,
+      "detail": "HTTP 401; expected 401"
+    },
+    {
+      "name": "Failed login 3",
+      "passed": true,
+      "detail": "HTTP 401; expected 401"
+    },
+    {
+      "name": "Failed login 4",
+      "passed": true,
+      "detail": "HTTP 401; expected 401"
+    },
+    {
+      "name": "Failed login 5",
+      "passed": true,
+      "detail": "HTTP 401; expected 401"
+    },
+    {
+      "name": "Locked account rejects correct password",
+      "passed": true,
+      "detail": "HTTP 423; expected (401, 423)"
+    },
+    {
+      "name": "Admin unlocks account",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Login audit-viewer@example.test",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Disable user",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Disabled user cannot login",
+      "passed": true,
+      "detail": "HTTP 401; expected 401"
+    },
+    {
+      "name": "Disabled user existing access token should be rejected",
+      "passed": false,
+      "detail": "HTTP 200; expected (401, 403)"
+    },
+    {
+      "name": "Re-enable user and change role",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Refresh rotates token",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Refresh token changes",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Refresh reuse rejected",
+      "passed": true,
+      "detail": "HTTP 401; expected 401"
+    },
+    {
+      "name": "Reuse revokes token family",
+      "passed": true,
+      "detail": "HTTP 401; expected 401"
+    },
+    {
+      "name": "Login audit-signup@example.test",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Change own password",
+      "passed": true,
+      "detail": "HTTP 204; expected 204"
+    },
+    {
+      "name": "Old password rejected after change",
+      "passed": true,
+      "detail": "HTTP 401; expected 401"
+    },
+    {
+      "name": "Login audit-signup@example.test",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Logout",
+      "passed": true,
+      "detail": "HTTP 204; expected 204"
+    },
+    {
+      "name": "Logged-out refresh token rejected",
+      "passed": true,
+      "detail": "HTTP 401; expected 401"
+    },
+    {
+      "name": "Login audit-signup@example.test",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Logout all sessions",
+      "passed": true,
+      "detail": "HTTP 204; expected 204"
+    },
+    {
+      "name": "Logout-all revokes refresh token",
+      "passed": true,
+      "detail": "HTTP 401; expected 401"
+    },
+    {
+      "name": "Developer audit access denied",
+      "passed": true,
+      "detail": "HTTP 403; expected 403"
+    },
+    {
+      "name": "Viewer audit access denied",
+      "passed": true,
+      "detail": "HTTP 403; expected 403"
+    },
+    {
+      "name": "DevOps audit log access",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Audit captures expected lifecycle actions",
+      "passed": true,
+      "detail": "Missing: "
+    },
+    {
+      "name": "Audit filters by action",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Audit action filtering is accurate",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Audit search, entity and actor filters",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Audit actor/entity filters are accurate",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Audit fields include time actor entity and details",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Audit API has no delete operation",
+      "passed": true,
+      "detail": "HTTP 404; expected (404, 405)"
+    },
+    {
+      "name": "CORS allows configured frontend",
+      "passed": true,
+      "detail": "HTTP 200; expected 200"
+    },
+    {
+      "name": "Deployment details endpoint",
+      "passed": true,
+      "detail": "HTTP 200; expected 200; requested ID matches"
+    }
+  ]
+}
