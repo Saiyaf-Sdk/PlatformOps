@@ -71,7 +71,7 @@ public class DashboardService {
         Kpis kpis = new Kpis(total, healthy, healthyPct, degraded,
                 deployments.countByCreatedAtGreaterThanEqualAndCreatedAtLessThan(startToday, now.plusSeconds(1)),
                 deployments.countByCreatedAtGreaterThanEqualAndCreatedAtLessThan(startYesterday, startToday),
-                deployments.countByStatusIn(EnumSet.of(DeploymentStatus.QUEUED, DeploymentStatus.RUNNING)),
+                deployments.countByStatusIn(EnumSet.of(DeploymentStatus.PENDING_APPROVAL, DeploymentStatus.QUEUED, DeploymentStatus.RUNNING)),
                 incidents.countByStatusIn(openStatuses),
                 incidents.countByStatusInAndAssigneeIsNull(openStatuses));
 

@@ -21,7 +21,7 @@ public final class DeploymentDtos {
                                      DeploymentStatus status, PipelineStage currentStage, int progress,
                                      UserRef triggeredBy, String commitSha, Integer buildNumber, String imageUri,
                                      String notes, String failureReason, Long rollbackOfId, boolean cancelRequested,
-                                     Instant createdAt, Instant startedAt, Instant finishedAt, Long durationSeconds) {
+                                     Instant createdAt, Instant startedAt, Instant finishedAt, Long durationSeconds, UserRef reviewedBy, Instant reviewedAt, String reviewNote) {
         public static DeploymentResponse from(Deployment d) {
             Long duration = d.getStartedAt() == null ? null
                     : java.time.Duration.between(d.getStartedAt(), d.getFinishedAt() != null ? d.getFinishedAt() : Instant.now()).toSeconds();
@@ -29,7 +29,7 @@ public final class DeploymentDtos {
                     d.getReleaseVersion(), d.getStatus(), d.getCurrentStage(), d.getProgress(), UserRef.from(d.getTriggeredBy()),
                     d.getCommitSha(), d.getBuildNumber(), d.getImageUri(), d.getNotes(), d.getFailureReason(),
                     d.getRollbackOf() == null ? null : d.getRollbackOf().getId(), d.isCancelRequested(),
-                    d.getCreatedAt(), d.getStartedAt(), d.getFinishedAt(), duration);
+                    d.getCreatedAt(), d.getStartedAt(), d.getFinishedAt(), duration, UserRef.from(d.getReviewedBy()), d.getReviewedAt(), d.getReviewNote());
         }
     }
 

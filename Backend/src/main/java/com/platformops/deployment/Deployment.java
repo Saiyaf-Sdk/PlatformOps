@@ -75,6 +75,15 @@ public class Deployment {
     @Column(name = "finished_at")
     private Instant finishedAt;
 
+    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "reviewed_by_id")
+    private User reviewedBy;
+    @Column(name = "reviewed_at") private Instant reviewedAt;
+    @Column(name = "review_note", length = 500) private String reviewNote;
+    public void review(User user, String note) { reviewedBy=user; reviewedAt=Instant.now(); reviewNote=note; }
+    public User getReviewedBy() { return reviewedBy; }
+    public Instant getReviewedAt() { return reviewedAt; }
+    public String getReviewNote() { return reviewNote; }
+
     @Version
     private long version;
 

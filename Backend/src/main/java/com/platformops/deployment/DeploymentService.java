@@ -35,7 +35,7 @@ import java.util.List;
 @Service
 public class DeploymentService {
 
-    private static final EnumSet<DeploymentStatus> ACTIVE = EnumSet.of(DeploymentStatus.QUEUED, DeploymentStatus.RUNNING);
+    private static final EnumSet<DeploymentStatus> ACTIVE = EnumSet.of(DeploymentStatus.PENDING_APPROVAL, DeploymentStatus.QUEUED, DeploymentStatus.RUNNING);
 
     private final DeploymentRepository repo;
     private final DeploymentLogRepository logs;
@@ -111,6 +111,12 @@ public class DeploymentService {
                 Texts.blankToNull(req.notes()), null, clock.instant()));
         audit.record("DEPLOYMENT_REQUESTED", "DEPLOYMENT", d.getId(),
                 app.getName() + " " + version + " → " + env.getCode() + (force ? " (forced)" : ""));
+        if (env.isRequiresApproval() && !force) {
+            d.setStatus(DeploymentStatus.PENDING_APPROVAL);
+            repo.saveAndFlush(d);
+            events.publishEvent(LiveEvent.of("deployment.created", DeploymentResponse.from(d)));
+            return DeploymentResponse.from(d);
+        }
         return queue(d);
     }
 
@@ -150,12 +156,32 @@ public class DeploymentService {
         if (!d.getStatus().isActive()) {
             throw ApiException.conflict("not_running", "Deployment #" + id + " has already finished (" + d.getStatus() + ")");
         }
+        if (d.getStatus() == DeploymentStatus.PENDING_APPROVAL) {
+            d.setStatus(DeploymentStatus.CANCELLED); d.setFinishedAt(clock.instant());
+            audit.record("DEPLOYMENT_CANCELLED", "DEPLOYMENT", id, "Cancelled before approval");
+            return DeploymentResponse.from(d);
+        }
         int cancelledNow = repo.cancelIfQueued(id, clock.instant(), DeploymentStatus.CANCELLED, DeploymentStatus.QUEUED);
         if (cancelledNow == 0) repo.requestCancel(id); // running: the pipeline stops at the next safe point
         audit.record("DEPLOYMENT_CANCEL_REQUESTED", "DEPLOYMENT", id, d.getApplication().getName() + " " + d.getReleaseVersion());
         DeploymentResponse res = DeploymentResponse.from(find(id));
         events.publishEvent(LiveEvent.of("deployment.updated", res));
         return res;
+    }
+
+    @Transactional
+    public DeploymentResponse review(Long id, boolean approve, String note) {
+        Deployment d=find(id);
+        if (d.getStatus()!=DeploymentStatus.PENDING_APPROVAL) throw ApiException.conflict("not_pending", "Only pending deployments can be reviewed");
+        if (!approve && (note==null || note.isBlank())) throw ApiException.badRequest("reason_required", "Give a reason for rejection");
+        d.review(users.getReferenceById(CurrentUser.require().id()), Texts.blankToNull(note));
+        d.setStatus(approve?DeploymentStatus.QUEUED:DeploymentStatus.REJECTED);
+        if(!approve) d.setFinishedAt(clock.instant());
+        repo.saveAndFlush(d);
+        audit.record(approve?"DEPLOYMENT_APPROVED":"DEPLOYMENT_REJECTED", "DEPLOYMENT", id, d.getApplication().getName()+": "+(note==null?"":note));
+        if(approve) return queue(d);
+        events.publishEvent(LiveEvent.of("deployment.updated",DeploymentResponse.from(d)));
+        return DeploymentResponse.from(d);
     }
 
     private DeploymentResponse queue(Deployment d) {

@@ -123,7 +123,7 @@ public class AuthService {
         return switch (result.outcome()) {
             case OK -> {
                 User u = result.user();
-                var access = jwt.issueAccessToken(u);
+                var access = jwt.issueAccessToken(u, result.next().sessionId());
                 yield new TokenResponse("Bearer", access.token(), access.expiresAt(),
                         result.next().rawToken(), result.next().expiresAt(), UserResponse.from(u));
             }
@@ -138,12 +138,15 @@ public class AuthService {
     }
 
     public void logout(String rawRefreshToken) {
-        if (rawRefreshToken != null && !rawRefreshToken.isBlank()) refreshTokens.revoke(rawRefreshToken);
+        if (rawRefreshToken != null && !rawRefreshToken.isBlank()) {
+            refreshTokens.revoke(rawRefreshToken);
+            com.platformops.security.CurrentUser.get().ifPresent(u -> audit.recordIndependent(u.id(), u.email(), "LOGOUT", "USER", u.id(), "Signed out"));
+        }
     }
 
     private TokenResponse tokensFor(User user) {
-        var access = jwt.issueAccessToken(user);
         var refresh = refreshTokens.issue(user);
+        var access = jwt.issueAccessToken(user, refresh.sessionId());
         return new TokenResponse("Bearer", access.token(), access.expiresAt(), refresh.rawToken(), refresh.expiresAt(),
                 UserResponse.from(user));
     }

@@ -82,7 +82,7 @@ public class ApplicationService {
     @Transactional
     public void delete(Long id) {
         Application a = find(id);
-        if (deployments.existsByApplicationIdAndStatusIn(id, EnumSet.of(DeploymentStatus.QUEUED, DeploymentStatus.RUNNING))) {
+        if (deployments.existsByApplicationIdAndStatusIn(id, EnumSet.of(DeploymentStatus.PENDING_APPROVAL, DeploymentStatus.QUEUED, DeploymentStatus.RUNNING))) {
             throw ApiException.conflict("deployment_in_progress", "Wait for the running deployment of " + a.getName() + " to finish");
         }
         repo.delete(a);

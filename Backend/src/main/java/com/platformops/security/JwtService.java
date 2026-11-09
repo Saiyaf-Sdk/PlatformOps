@@ -30,8 +30,12 @@ public class JwtService {
     private final SecretKey key;
     private final AppProperties.Jwt cfg;
     private final Clock clock;
+    private final com.platformops.user.UserRepository users;
+    private final com.platformops.auth.RefreshTokenRepository sessions;
 
-    public JwtService(AppProperties props, Clock clock, Environment env) {
+    public JwtService(AppProperties props, Clock clock, Environment env, com.platformops.user.UserRepository users, com.platformops.auth.RefreshTokenRepository sessions) {
+        this.users = users;
+        this.sessions = sessions;
         this.cfg = props.jwt();
         this.clock = clock;
         byte[] bytes;
@@ -53,7 +57,7 @@ public class JwtService {
 
     public record IssuedToken(String token, Instant expiresAt) {}
 
-    public IssuedToken issueAccessToken(User user) {
+    public IssuedToken issueAccessToken(User user, String sessionId) {
         Instant now = clock.instant();
         Instant exp = now.plus(cfg.accessTokenTtl());
         String token = Jwts.builder()
@@ -62,6 +66,7 @@ public class JwtService {
                 .subject(String.valueOf(user.getId()))
                 .claim("email", user.getEmail())
                 .claim("role", user.getRole().name())
+                .claim("sid", sessionId)
                 .claim("typ", "access")
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(exp))
@@ -82,8 +87,12 @@ public class JwtService {
                     .parseSignedClaims(token)
                     .getPayload();
             if (!"access".equals(c.get("typ", String.class))) return Optional.empty();
-            return Optional.of(new AuthUser(Long.valueOf(c.getSubject()), c.get("email", String.class),
-                    Role.valueOf(c.get("role", String.class))));
+            Long id = Long.valueOf(c.getSubject());
+            String sid = c.get("sid", String.class);
+            var user = users.findById(id).orElse(null);
+            if (user == null || !user.isEnabled() || user.isLocked(clock.instant()) || sid == null
+                    || !sessions.existsByUserIdAndSessionIdAndRevokedAtIsNullAndExpiresAtAfter(id, sid, clock.instant())) return Optional.empty();
+            return Optional.of(new AuthUser(id, user.getEmail(), user.getRole()));
         } catch (JwtException | IllegalArgumentException e) {
             return Optional.empty();
         }

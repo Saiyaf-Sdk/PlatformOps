@@ -32,7 +32,7 @@ public final class UserDtos {
     public record CreateUserRequest(
             @NotBlank @Email @Size(max = 254) String email,
             @NotBlank @Size(min = 2, max = 120) String fullName,
-            @NotBlank @Pattern(regexp = PASSWORD_RULE, message = PASSWORD_MESSAGE) String password,
+            @com.platformops.security.ValidPassword String password,
             @NotNull Role role) {}
 
     public record UpdateUserRequest(
@@ -42,5 +42,5 @@ public final class UserDtos {
 
     public record ChangePasswordRequest(
             @NotBlank String currentPassword,
-            @NotBlank @Pattern(regexp = PASSWORD_RULE, message = PASSWORD_MESSAGE) String newPassword) {}
+            @com.platformops.security.ValidPassword String newPassword) {}
 }

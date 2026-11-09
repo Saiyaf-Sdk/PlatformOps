@@ -60,6 +60,14 @@ public class DeploymentController {
         return deployments.rollback(id, req);
     }
 
+    public record ReviewRequest(@jakarta.validation.constraints.Size(max=500) String note) {}
+
+    @PostMapping("/{id}/{decision:approve|reject}")
+    @PreAuthorize("hasAnyRole('ADMIN','DEVOPS')")
+    public DeploymentResponse review(@PathVariable Long id, @PathVariable String decision, @Valid @RequestBody ReviewRequest req) {
+        return deployments.review(id, "approve".equals(decision), req.note());
+    }
+
     @PostMapping("/{id}/cancel")
     @PreAuthorize("hasAnyRole('ADMIN','DEVOPS','DEVELOPER')")
     public DeploymentResponse cancel(@PathVariable Long id) {

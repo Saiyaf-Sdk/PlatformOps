@@ -17,7 +17,7 @@ public class RefreshTokenService {
 
     public enum Outcome { OK, UNKNOWN, EXPIRED, REUSED, USER_DISABLED }
 
-    public record Issued(String rawToken, Instant expiresAt) {}
+    public record Issued(String rawToken, Instant expiresAt, String sessionId) {}
 
     public record RotationResult(Outcome outcome, User user, Issued next) {}
 
@@ -33,11 +33,17 @@ public class RefreshTokenService {
 
     @Transactional
     public Issued issue(User user) {
+        return issue(user, java.util.UUID.randomUUID().toString());
+    }
+
+    private Issued issue(User user, String sessionId) {
         Instant now = clock.instant();
         String raw = TokenHasher.newOpaqueToken();
         Instant exp = now.plus(props.jwt().refreshTokenTtl());
-        repo.save(new RefreshToken(user, TokenHasher.sha256(raw), now, exp, RequestContext.userAgent(), RequestContext.clientIp()));
-        return new Issued(raw, exp);
+        RefreshToken token = new RefreshToken(user, TokenHasher.sha256(raw), now, exp, RequestContext.userAgent(), RequestContext.clientIp());
+        token.setSessionId(sessionId);
+        repo.save(token);
+        return new Issued(raw, exp, sessionId);
     }
 
     /**
@@ -61,7 +67,7 @@ public class RefreshTokenService {
             return new RotationResult(Outcome.USER_DISABLED, user, null);
         }
         token.setRevokedAt(now);
-        return new RotationResult(Outcome.OK, user, issue(user));
+        return new RotationResult(Outcome.OK, user, issue(user, token.getSessionId()));
     }
 
     @Transactional

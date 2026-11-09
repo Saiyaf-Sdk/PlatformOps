@@ -1,7 +1,7 @@
 package com.platformops.deployment;
 
 public enum DeploymentStatus {
-    QUEUED, RUNNING, SUCCEEDED, FAILED, CANCELLED;
+    PENDING_APPROVAL, REJECTED, QUEUED, RUNNING, SUCCEEDED, FAILED, CANCELLED;
 
-    public boolean isActive() { return this == QUEUED || this == RUNNING; }
+    public boolean isActive() { return this == PENDING_APPROVAL || this == QUEUED || this == RUNNING; }
 }

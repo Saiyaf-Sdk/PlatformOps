@@ -36,9 +36,16 @@ public class RefreshToken {
     @Column(name = "ip_address", length = 64)
     private String ipAddress;
 
+    @Column(name = "session_id", nullable = false, length = 36)
+    private String sessionId;
+
+    public String getSessionId() { return sessionId; }
+    public void setSessionId(String value) { sessionId = value; }
+
     protected RefreshToken() {}
 
     public RefreshToken(User user, String tokenHash, Instant createdAt, Instant expiresAt, String userAgent, String ipAddress) {
+        this.sessionId = java.util.UUID.randomUUID().toString();
         this.user = user;
         this.tokenHash = tokenHash;
         this.createdAt = createdAt;
