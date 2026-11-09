@@ -1,5 +1,9 @@
 {
     "java.compile.nullAnalysis.mode": "disabled",
     "typescript.tsdk": "Frontend/node_modules/typescript/lib",
-    "typescript.enablePromptUseWorkspaceTsdk": true
+    "typescript.enablePromptUseWorkspaceTsdk": true,
+    "DockerRun.DisableDockerrc": true,
+    "DockerRun.Containers": [
+        "9d78b0131a02"
+    ]
 }
