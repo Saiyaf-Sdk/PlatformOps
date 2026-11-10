@@ -61,9 +61,9 @@ class IncidentUserAuditTest extends ApiTestBase {
         created.andExpect(status().isCreated()).andExpect(jsonPath("$.role").value("DEVELOPER"));
         long id = read(created).get("id").asLong();
 
-        postJson("/api/v1/users", t, Map.of("email", email, "fullName", "Dup", "password", "Welcome123", "role", "VIEWER"))
+        postJson("/api/v1/users", t, Map.of("email", email, "fullName", "Dup", "password", "Welcome123", "role", "DEVELOPER"))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("email_taken"));
-        postJson("/api/v1/users", t, Map.of("email", unique("weak") + "@test.dev", "fullName", "Weak", "password", "short", "role", "VIEWER"))
+        postJson("/api/v1/users", t, Map.of("email", unique("weak") + "@test.dev", "fullName", "Weak", "password", "short", "role", "DEVELOPER"))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.password").exists());
 
         patchJson("/api/v1/users/" + id, t, Map.of("role", "DEVOPS")).andExpect(jsonPath("$.role").value("DEVOPS"));
@@ -71,7 +71,7 @@ class IncidentUserAuditTest extends ApiTestBase {
                 .andExpect(status().isConflict());
 
         // non-admins can't manage people
-        postJson("/api/v1/users", tokenFor(Role.DEVOPS), Map.of("email", unique("x") + "@test.dev", "fullName", "User X", "password", "Welcome123", "role", "VIEWER"))
+        postJson("/api/v1/users", tokenFor(Role.DEVOPS), Map.of("email", unique("x") + "@test.dev", "fullName", "User X", "password", "Welcome123", "role", "DEVELOPER"))
                 .andExpect(status().isForbidden());
     }
 
@@ -89,7 +89,7 @@ class IncidentUserAuditTest extends ApiTestBase {
 
     @Test
     void failedLoginsAreAuditedEvenThoughTheRequestFails() throws Exception {
-        User u = createUser(Role.VIEWER);
+        User u = createUser(Role.DEVELOPER);
         postJson("/api/v1/auth/login", null, Map.of("email", u.getEmail(), "password", "wrong-pass1")).andExpect(status().isUnauthorized());
         JsonNode page = read(get("/api/v1/audit-events?action=LOGIN_FAILED&actorId=" + u.getId(), tokenFor(Role.ADMIN)));
         assertThat(page.get("totalElements").asInt()).isGreaterThanOrEqualTo(1);
@@ -97,7 +97,7 @@ class IncidentUserAuditTest extends ApiTestBase {
 
     @Test
     void dashboardSummaryHasEverySection() throws Exception {
-        String t = tokenFor(Role.VIEWER);
+        String t = tokenFor(Role.DEVELOPER);
         get("/api/v1/dashboard/summary?tzOffsetMinutes=330", t)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.kpis.applications").isNumber())
@@ -110,7 +110,7 @@ class IncidentUserAuditTest extends ApiTestBase {
 
     @Test
     void environmentsAreListedInPipelineOrder() throws Exception {
-        get("/api/v1/environments", tokenFor(Role.VIEWER))
+        get("/api/v1/environments", tokenFor(Role.DEVELOPER))
                 .andExpect(jsonPath("$[0].code").value("DEV"))
                 .andExpect(jsonPath("$[1].code").value("STAGING"))
                 .andExpect(jsonPath("$[2].code").value("PRODUCTION"))
@@ -121,6 +121,6 @@ class IncidentUserAuditTest extends ApiTestBase {
     void healthAndDocsArePublic() throws Exception {
         get("/actuator/health", null).andExpect(status().isOk());
         get("/v3/api-docs", null).andExpect(status().isOk());
-        get("/api/v1/nope", tokenFor(Role.VIEWER)).andExpect(status().isNotFound());
+        get("/api/v1/nope", tokenFor(Role.DEVELOPER)).andExpect(status().isNotFound());
     }
 }

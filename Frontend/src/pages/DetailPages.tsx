@@ -6,13 +6,18 @@ import {
   RefreshCw, Box, Play, Shield, Network
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useApplication, useApplications, useEnvironment, useEnvironments, useDeployments, useIncidents } from '../lib/queries';
-import type { EnvCode } from '../lib/types';
+import {
+  useApplication, useApplications, useEnvironment, useEnvironments, useDeployments, useIncidents,
+  useInfrastructureRequests, useCreateInfrastructureRequest, useReviewInfrastructureRequest,
+} from '../lib/queries';
+import type { EnvCode, ResourceSize, ResourceType } from '../lib/types';
 import { AppStatusChip, DeployStatusChip, EnvChip } from '../components/badges';
 import { Skeleton, ErrorState } from '../components/ui';
 import DeployModal from '../components/DeployModal';
 import { timeAgo, dateTime } from '../lib/format';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/Toaster';
+import { errorMessage } from '../lib/api';
 
 type Tone = 'cyan' | 'green' | 'amber' | 'red' | 'purple';
 const colors: Record<Tone, { color: string; bg: string; border: string }> = {
@@ -213,9 +218,223 @@ export function DeploymentDetails() {
 
 export function InfrastructureRequests() {
   const navigate = useNavigate();
-  const [submitted, setSubmitted] = useState(false);
-  const [reason, setReason] = useState('');
-  return <div className="space-y-6"><Back to="/infrastructure" label="Back to infrastructure" /><Header eyebrow="Operations / Self Service" title="Infrastructure Requests" description="Request approved platform resources without a manual ticket handoff." action={<Badge label="SLA: 1 business day" />} /><div className="grid gap-5 lg:grid-cols-3"><div className="rounded-xl p-5 lg:col-span-2" style={panel}><div className="flex items-center gap-3"><Database className="h-5 w-5 text-[#00F0FF]" /><div><h2 className="text-sm font-semibold text-white">New resource request</h2><p className="mt-1 text-xs text-[#64748B]">Requests are checked against capacity and policy.</p></div></div>{submitted ? <div className="mt-8 rounded-lg p-5 text-center" style={{ background: colors.green.bg, border: `1px solid ${colors.green.border}` }}><CheckCircle2 className="mx-auto h-8 w-8 text-[#00FFA3]" /><h3 className="mt-3 font-semibold text-white">Request submitted</h3><p className="mt-1 text-xs text-[#94A3B8]">REQ-2409 is awaiting Platform Team approval.</p><button onClick={() => setSubmitted(false)} className="mt-4 text-xs text-[#00F0FF]">Create another request</button></div> : <form onSubmit={event => { event.preventDefault(); setSubmitted(true); }} className="mt-6 space-y-5"><div className="grid gap-4 md:grid-cols-2"><Field label="Target environment"><select className="platform-input"><option>Development</option><option>Staging</option><option>Production</option></select></Field><Field label="Resource type"><select className="platform-input"><option>Managed database</option><option>Cache cluster</option><option>Object storage</option><option>Kubernetes namespace</option></select></Field><Field label="Region"><select className="platform-input"><option>ap-south-1</option><option>ap-southeast-1</option><option>us-east-1</option></select></Field><Field label="Size"><select className="platform-input"><option>Standard</option><option>Performance</option><option>High availability</option></select></Field></div><Field label="Business justification"><textarea required value={reason} onChange={event => setReason(event.target.value)} rows={4} placeholder="Explain the workload and expected usage..." className="platform-input resize-none" /></Field><div className="flex justify-end gap-3"><button type="button" onClick={() => navigate('/infrastructure')} className="px-4 py-2 text-xs text-[#94A3B8]">Cancel</button><button type="submit" className="rounded-lg border border-[rgba(0,240,255,0.3)] bg-[rgba(0,240,255,0.1)] px-4 py-2 text-xs font-semibold text-[#00F0FF]">Submit request</button></div></form>}</div><div className="space-y-5"><div className="rounded-xl p-5" style={panel}><h2 className="text-sm font-semibold text-white">Request checklist</h2><div className="mt-4 space-y-3">{['Cost center is assigned', 'Environment policy is valid', 'Capacity is available', 'Owner is on-call'].map(item => <p key={item} className="flex items-center gap-2 text-xs text-[#CBD5E1]"><CheckCircle2 className="h-4 w-4 text-[#00FFA3]" />{item}</p>)}</div></div><div className="rounded-xl p-5" style={panel}><h2 className="text-sm font-semibold text-white">Recent requests</h2><div className="mt-4 space-y-3">{['REQ-2408 · Cache cluster · Approved', 'REQ-2407 · Object storage · Provisioning'].map(item => <p key={item} className="flex items-center gap-2 text-xs text-[#CBD5E1]"><Circle className="h-2 w-2 fill-[#00FFA3] text-[#00FFA3]" />{item}</p>)}</div></div></div></div></div>;
+  const { can } = useAuth();
+  const toast = useToast();
+  const { data: apps } = useApplications();
+  const { data: requests, refetch } = useInfrastructureRequests();
+  const create = useCreateInfrastructureRequest();
+  const review = useReviewInfrastructureRequest();
+
+  const [appId, setAppId] = useState<number | ''>('');
+  const [env, setEnv] = useState<EnvCode>('DEV');
+  const [resType, setResType] = useState<ResourceType>('DATABASE');
+  const [resSize, setResSize] = useState<ResourceSize>('STANDARD');
+  const [justification, setJustification] = useState('');
+  const [submittedRef, setSubmittedRef] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!appId) {
+      toast({ tone: 'error', title: 'Missing application', body: 'Please select an application.' });
+      return;
+    }
+    if (justification.trim().length < 10) {
+      toast({ tone: 'error', title: 'Justification too short', body: 'Please enter at least 10 characters.' });
+      return;
+    }
+    try {
+      const res = await create.mutateAsync({
+        applicationId: Number(appId),
+        environment: env,
+        resourceType: resType,
+        resourceSize: resSize,
+        justification: justification.trim(),
+      });
+      setSubmittedRef(res.reference);
+      setJustification('');
+      toast({ tone: 'success', title: 'Request submitted', body: `${res.reference} has been logged.` });
+    } catch (err) {
+      toast({ tone: 'error', title: 'Request failed', body: errorMessage(err) });
+    }
+  };
+
+  const handleReview = async (id: number, decision: 'approve' | 'reject') => {
+    const note = window.prompt(decision === 'reject' ? 'Rejection reason (required):' : 'Approval note (optional):');
+    if (decision === 'reject' && (!note || !note.trim())) {
+      toast({ tone: 'error', title: 'Reason required', body: 'Rejection requires a brief note.' });
+      return;
+    }
+    try {
+      await review.mutateAsync({ id, decision, note: note || undefined });
+      toast({ tone: 'success', title: `Request ${decision}d`, body: `Request #${id} updated.` });
+      refetch();
+    } catch (err) {
+      toast({ tone: 'error', title: `Failed to ${decision}`, body: errorMessage(err) });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <Back to="/infrastructure" label="Back to infrastructure" />
+      <Header
+        eyebrow="Operations / Self Service"
+        title="Infrastructure Requests"
+        description="Request approved platform resources without manual ticket handoffs."
+        action={<Badge label="Self-Service IDP" />}
+      />
+
+      <div className="grid gap-5 lg:grid-cols-3">
+        <div className="rounded-xl p-5 lg:col-span-2" style={panel}>
+          <div className="flex items-center gap-3">
+            <Database className="h-5 w-5 text-[#00F0FF]" />
+            <div>
+              <h2 className="text-sm font-semibold text-white">New resource request</h2>
+              <p className="mt-1 text-xs text-[#64748B]">Resource allocations are recorded in PlatformOps audit log.</p>
+            </div>
+          </div>
+
+          {submittedRef ? (
+            <div className="mt-8 rounded-lg p-5 text-center" style={{ background: colors.green.bg, border: `1px solid ${colors.green.border}` }}>
+              <CheckCircle2 className="mx-auto h-8 w-8 text-[#00FFA3]" />
+              <h3 className="mt-3 font-semibold text-white">Request {submittedRef} submitted</h3>
+              <p className="mt-1 text-xs text-[#94A3B8]">Your request is pending DevOps approval.</p>
+              <button onClick={() => setSubmittedRef(null)} className="mt-4 text-xs text-[#00F0FF]">Create another request</button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="Target application">
+                  <select
+                    className="platform-input"
+                    value={appId}
+                    onChange={(e) => setAppId(e.target.value ? Number(e.target.value) : '')}
+                    required
+                  >
+                    <option value="">Select an application...</option>
+                    {apps?.content.map((a) => (
+                      <option key={a.id} value={a.id}>{a.name} ({a.ownerTeam})</option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Target environment">
+                  <select
+                    className="platform-input"
+                    value={env}
+                    onChange={(e) => setEnv(e.target.value as EnvCode)}
+                  >
+                    <option value="DEV">DEV (Development)</option>
+                    <option value="STAGING">STAGING (Pre-production)</option>
+                    <option value="PRODUCTION">PRODUCTION</option>
+                  </select>
+                </Field>
+                <Field label="Resource type">
+                  <select
+                    className="platform-input"
+                    value={resType}
+                    onChange={(e) => setResType(e.target.value as ResourceType)}
+                  >
+                    <option value="DATABASE">DATABASE (PostgreSQL / Relational)</option>
+                    <option value="CACHE">CACHE (Redis cluster)</option>
+                    <option value="STORAGE">STORAGE (Object bucket / S3)</option>
+                    <option value="SERVICE">SERVICE (Supporting container)</option>
+                  </select>
+                </Field>
+                <Field label="Resource size">
+                  <select
+                    className="platform-input"
+                    value={resSize}
+                    onChange={(e) => setResSize(e.target.value as ResourceSize)}
+                  >
+                    <option value="SMALL">SMALL (Dev sandbox)</option>
+                    <option value="STANDARD">STANDARD (General workload)</option>
+                    <option value="LARGE">LARGE (High-throughput)</option>
+                  </select>
+                </Field>
+              </div>
+
+              <Field label="Business justification">
+                <textarea
+                  required
+                  value={justification}
+                  onChange={(e) => setJustification(e.target.value)}
+                  rows={4}
+                  placeholder="Explain why this resource is required (minimum 10 characters)..."
+                  className="platform-input resize-none"
+                />
+              </Field>
+
+              <div className="flex justify-end gap-3">
+                <button type="button" onClick={() => navigate('/infrastructure')} className="px-4 py-2 text-xs text-[#94A3B8]">
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={create.isPending}
+                  className="rounded-lg border border-[rgba(0,240,255,0.3)] bg-[rgba(0,240,255,0.1)] px-4 py-2 text-xs font-semibold text-[#00F0FF] hover:bg-[rgba(0,240,255,0.2)] disabled:opacity-50"
+                >
+                  {create.isPending ? 'Submitting...' : 'Submit request'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+
+        {/* Requests list & review */}
+        <div className="space-y-5">
+          <div className="rounded-xl p-5" style={panel}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-white">Active Requests</h2>
+              <span className="text-xs font-mono text-[#64748B]">{requests?.totalElements ?? 0}</span>
+            </div>
+            <div className="mt-4 space-y-3">
+              {!requests?.content.length ? (
+                <p className="text-xs text-[#64748B]">No infrastructure requests yet.</p>
+              ) : (
+                requests.content.map((r) => {
+                  const tone: Tone = r.status === 'APPROVED' ? 'green' : r.status === 'REJECTED' ? 'red' : 'amber';
+                  return (
+                    <div key={r.id} className="rounded-lg border border-[rgba(255,255,255,0.06)] p-3 text-xs space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono font-bold text-white">{r.reference}</span>
+                        <Badge label={r.status} tone={tone} />
+                      </div>
+                      <p className="text-white font-medium">{r.application?.name} · {r.resourceType} ({r.resourceSize})</p>
+                      <p className="text-[#94A3B8] text-[11px] line-clamp-2">“{r.justification}”</p>
+                      <div className="flex items-center justify-between text-[10px] text-[#64748B]">
+                        <span>on {r.environment} by {r.requestedBy?.fullName}</span>
+                        <span>{timeAgo(r.createdAt)}</span>
+                      </div>
+                      {r.decisionNote && (
+                        <p className="text-[10px] text-[#A78BFA] italic">Note: {r.decisionNote}</p>
+                      )}
+                      {r.status === 'PENDING' && can('ADMIN', 'DEVOPS') && (
+                        <div className="flex gap-2 pt-1 border-t border-[rgba(255,255,255,0.06)]">
+                          <button
+                            onClick={() => handleReview(r.id, 'approve')}
+                            disabled={review.isPending}
+                            className="text-[11px] font-semibold text-[#00FFA3] hover:underline"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handleReview(r.id, 'reject')}
+                            disabled={review.isPending}
+                            className="text-[11px] font-semibold text-[#FF3366] hover:underline"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 const ENV_CONFIGS: Record<string, { code: EnvCode; name: string; cluster: string; region: string; tone: Tone; defaultPods: string; version: string }> = {

@@ -87,7 +87,7 @@ public class DemoDataSeeder implements ApplicationRunner {
         User aisha = users.save(new User("aisha@platformops.dev", "Aisha Khan", demoHash, Role.DEVELOPER));
         User kavin = users.save(new User("kavin@platformops.dev", "Kavin Raj", demoHash, Role.DEVOPS));
         User sara = users.save(new User("sara@platformops.dev", "Sara Fernando", demoHash, Role.DEVELOPER));
-        users.save(new User("ravi@platformops.dev", "Ravi Silva", demoHash, Role.VIEWER));
+        users.save(new User("ravi@platformops.dev", "Ravi Silva", demoHash, Role.DEVELOPER));
         List<User> deployers = List.of(admin, nimal, aisha, kavin, sara);
 
         Environment dev = envs.findByCode(EnvironmentCode.DEV).orElseThrow();

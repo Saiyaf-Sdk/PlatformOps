@@ -54,16 +54,6 @@ class ApplicationApiTest extends ApiTestBase {
     }
 
     @Test
-    void viewersAreReadOnly() throws Exception {
-        String viewer = tokenFor(Role.VIEWER);
-        get("/api/v1/applications", viewer).andExpect(status().isOk());
-        postJson("/api/v1/applications", viewer, Map.of("name", unique("nope"), "description", "x", "runtime", "Go",
-                "ownerTeam", "A", "repoUrl", "org/x"))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("forbidden"));
-    }
-
-    @Test
     void developersCanRegisterButNotDelete() throws Exception {
         String dev = tokenFor(Role.DEVELOPER);
         long id = createApp(dev, unique("devsvc"));
@@ -83,7 +73,7 @@ class ApplicationApiTest extends ApiTestBase {
 
     @Test
     void pageSizeIsClamped() throws Exception {
-        String t = tokenFor(Role.VIEWER);
+        String t = tokenFor(Role.DEVELOPER);
         get("/api/v1/applications?size=100000", t).andExpect(jsonPath("$.size").value(100));
     }
 }

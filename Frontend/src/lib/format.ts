@@ -36,7 +36,6 @@ export const ROLE_LABEL: Record<Role, string> = {
   ADMIN: 'Administrator',
   DEVOPS: 'DevOps',
   DEVELOPER: 'Developer',
-  VIEWER: 'Viewer',
 };
 
 export const initials = (name?: string) =>

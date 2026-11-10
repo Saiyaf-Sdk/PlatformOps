@@ -11,7 +11,7 @@ import { errorMessage, problemOf } from '../lib/api';
 import { ROLE_LABEL, initials, timeAgo } from '../lib/format';
 import type { Role } from '../lib/types';
 
-const ROLES: Role[] = ['ADMIN', 'DEVOPS', 'DEVELOPER', 'VIEWER'];
+const ROLES: Role[] = ['ADMIN', 'DEVOPS', 'DEVELOPER'];
 const PASSWORD_RULE = /^(?=.*[A-Za-z])(?=.*\d).{8,72}$/;
 
 function InviteModal({ open, onClose }: { open: boolean; onClose: () => void }) {
