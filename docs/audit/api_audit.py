@@ -123,15 +123,15 @@ try:
     call('Authenticated API through Nginx', 'GET', '/api/v1/auth/me', token=admin, base=args.proxy)
 
     role_sessions, role_ids = {}, {}
-    for role in ('DEVOPS', 'DEVELOPER', 'VIEWER'):
+    for role in ('DEVOPS', 'DEVELOPER'):
         email = 'audit-' + role.lower() + '@example.test'
         user = call('Admin creates ' + role, 'POST', '/api/v1/users', 201,
                     {'email': email, 'fullName': 'Audit ' + role, 'password': 'Audit@12345', 'role': role}, admin)
         role_ids[role] = user['id']
         role_sessions[role] = login(email)
-    devops, developer, viewer = [role_sessions[r]['accessToken'] for r in ('DEVOPS','DEVELOPER','VIEWER')]
+    devops, developer = [role_sessions[r]['accessToken'] for r in ('DEVOPS','DEVELOPER')]
     call('People list and search', 'GET', '/api/v1/users?q=audit&size=2', token=admin)
-    call('User details', 'GET', f'/api/v1/users/{role_ids["VIEWER"]}', token=admin)
+    call('User details', 'GET', f'/api/v1/users/{role_ids["DEVELOPER"]}', token=admin)
     call('Non-admin user creation denied', 'POST', '/api/v1/users', 403,
          {'email':'denied@example.test','fullName':'Denied User','password':'Audit@12345','role':'ADMIN'}, developer)
     call('Admin cannot disable self', 'PATCH', f'/api/v1/users/{me["id"]}', 409, {'enabled':False}, admin)
@@ -152,7 +152,6 @@ try:
     app_id = app_data['id']
     call('Duplicate application rejected', 'POST', '/api/v1/applications', 409, app_body, admin)
     call('Invalid application name rejected', 'POST', '/api/v1/applications', 400, {**app_body,'name':'INVALID name'}, admin)
-    call('Viewer application write denied', 'POST', '/api/v1/applications', 403, {**app_body,'name':'denied-app'}, viewer)
     apps = call('Application search and runtime filters', 'GET', '/api/v1/applications?q=audit-service&runtime=Java%2021&size=1', token=admin)
     check('Application search returns created service', apps.get('totalElements') == 1 and apps['content'][0]['id'] == app_id)
     call('Application statistics', 'GET', '/api/v1/applications/stats', token=admin)
@@ -175,8 +174,6 @@ try:
          {'applicationId':app_id,'environment':'PRODUCTION','version':'v1.0.0'}, developer)
     call('Non-admin force denied', 'POST', '/api/v1/deployments', 403,
          {'applicationId':app_id,'environment':'DEV','version':'v1.0.0','force':True}, developer)
-    call('Viewer deployment denied', 'POST', '/api/v1/deployments', 403,
-         {'applicationId':app_id,'environment':'DEV','version':'v1.0.0'}, viewer)
     call('Invalid deployment version rejected', 'POST', '/api/v1/deployments', 400,
          {'applicationId':app_id,'environment':'DEV','version':'latest'}, admin)
     first = wait_deployment(deploy('v1.0.0', token=developer), 'SUCCEEDED')
@@ -210,19 +207,19 @@ try:
     call('Reopen incident', 'PATCH', incident_path, body={'status':'OPEN','unassign':True}, token=devops)
     call('Incident query filters', 'GET', '/api/v1/incidents?q=Audit&severity=SEV3&status=OPEN', token=admin)
 
-    # Lock only the disposable VIEWER user, then unlock it.
+    # Lock a disposable developer user, then unlock it.
     for attempt in range(5):
         call(f'Failed login {attempt + 1}', 'POST', '/api/v1/auth/login', 401,
-             {'email':'audit-viewer@example.test','password':'wrong-password'})
+             {'email':'audit-developer@example.test','password':'wrong-password'})
     call('Locked account rejects correct password', 'POST', '/api/v1/auth/login', (401,423),
-         {'email':'audit-viewer@example.test','password':'Audit@12345'})
-    call('Admin unlocks account', 'POST', f'/api/v1/users/{role_ids["VIEWER"]}/unlock', token=admin)
-    login('audit-viewer@example.test')
-    call('Disable user', 'PATCH', f'/api/v1/users/{role_ids["VIEWER"]}', body={'enabled':False}, token=admin)
+         {'email':'audit-developer@example.test','password':'Audit@12345'})
+    call('Admin unlocks account', 'POST', f'/api/v1/users/{role_ids["DEVELOPER"]}/unlock', token=admin)
+    login('audit-developer@example.test')
+    call('Disable user', 'PATCH', f'/api/v1/users/{role_ids["DEVELOPER"]}', body={'enabled':False}, token=admin)
     call('Disabled user cannot login', 'POST', '/api/v1/auth/login', 401,
-         {'email':'audit-viewer@example.test','password':'Audit@12345'})
-    call('Disabled user existing access token should be rejected', 'GET', '/api/v1/applications', (401,403), token=viewer)
-    call('Re-enable user and change role', 'PATCH', f'/api/v1/users/{role_ids["VIEWER"]}', body={'enabled':True,'role':'DEVELOPER'}, token=admin)
+         {'email':'audit-developer@example.test','password':'Audit@12345'})
+    call('Disabled user existing access token should be rejected', 'GET', '/api/v1/applications', (401,403), token=developer)
+    call('Re-enable user', 'PATCH', f'/api/v1/users/{role_ids["DEVELOPER"]}', body={'enabled':True}, token=admin)
 
     rotated = call('Refresh rotates token', 'POST', '/api/v1/auth/refresh', body={'refreshToken':signup['refreshToken']})
     check('Refresh token changes', rotated.get('refreshToken') != signup['refreshToken'])
@@ -241,7 +238,6 @@ try:
     call('Logout-all revokes refresh token', 'POST', '/api/v1/auth/refresh', 401, {'refreshToken':signup['refreshToken']})
 
     call('Developer audit access denied', 'GET', '/api/v1/audit-events', 403, token=developer)
-    call('Viewer audit access denied', 'GET', '/api/v1/audit-events', 403, token=viewer)
     audit = call('DevOps audit log access', 'GET', '/api/v1/audit-events?size=200', token=devops)
     actions = {event['action'] for event in audit['content']}
     required_actions = {'SIGNUP','LOGIN','LOGIN_FAILED','ACCOUNT_LOCKED','APPLICATION_CREATED','APPLICATION_UPDATED','APPLICATION_DELETED',

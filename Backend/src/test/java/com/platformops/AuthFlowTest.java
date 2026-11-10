@@ -29,13 +29,13 @@ class AuthFlowTest extends ApiTestBase {
 
     @Test
     void emailIsCaseInsensitive() throws Exception {
-        User u = createUser(Role.VIEWER);
+        User u = createUser(Role.DEVELOPER);
         login(u.getEmail().toUpperCase(), PASSWORD);
     }
 
     @Test
     void wrongPasswordAndUnknownEmailLookTheSame() throws Exception {
-        User u = createUser(Role.VIEWER);
+        User u = createUser(Role.DEVELOPER);
         postJson("/api/v1/auth/login", null, Map.of("email", u.getEmail(), "password", "nope-12345"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("invalid_credentials"));
@@ -46,7 +46,7 @@ class AuthFlowTest extends ApiTestBase {
 
     @Test
     void accountLocksAfterRepeatedFailures() throws Exception {
-        User u = createUser(Role.VIEWER);
+        User u = createUser(Role.DEVELOPER);
         for (int i = 0; i < 5; i++) {
             postJson("/api/v1/auth/login", null, Map.of("email", u.getEmail(), "password", "wrong-pass1"))
                     .andExpect(status().isUnauthorized());

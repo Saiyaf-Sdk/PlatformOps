@@ -251,7 +251,6 @@ PlatformOps enforces strict Role-Based Access Control (RBAC):
 | **ADMIN** | Full (CRUD) | Full (Trigger/Cancel) | Full (Triage/Resolve) | Manage Users | Full Access |
 | **DEVOPS** | Full (CRUD) | Full (Trigger/Cancel) | Full (Triage/Resolve) | View Only | View Only |
 | **DEVELOPER** | Read / Create | Trigger Dev/Staging | View / Report | View Only | View Only |
-| **VIEWER** | Read Only | Read Only | Read Only | Read Only | Read Only |
 
 ### Default Demo Accounts
 
@@ -262,7 +261,7 @@ When starting with an empty database and `SEED_DEMO_DATA=true`, the following ac
 | `admin@platformops.dev` | `Admin@12345` | **ADMIN** |
 | `nimal@platformops.dev` | `Demo@12345` | **DEVOPS** |
 | `aisha@platformops.dev` | `Demo@12345` | **DEVELOPER** |
-| `ravi@platformops.dev` | `Demo@12345` | **VIEWER** |
+| `ravi@platformops.dev` | `Demo@12345` | **DEVELOPER** |
 
 ---
 

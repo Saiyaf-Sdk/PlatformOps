@@ -1,6 +1,6 @@
 // Mirrors the PlatformOps API DTOs (Backend/src/main/java/com/platformops/**/…Dtos.java)
 
-export type Role = 'ADMIN' | 'DEVOPS' | 'DEVELOPER' | 'VIEWER';
+export type Role = 'ADMIN' | 'DEVOPS' | 'DEVELOPER';
 export type AppStatus = 'HEALTHY' | 'WARNING' | 'CRITICAL';
 export type EnvCode = 'DEV' | 'STAGING' | 'PRODUCTION';
 export type EnvStatus = 'HEALTHY' | 'DEGRADED' | 'DOWN';

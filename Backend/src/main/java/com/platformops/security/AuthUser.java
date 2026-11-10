@@ -13,7 +13,6 @@ public record AuthUser(Long id, String email, Role role) {
             case ADMIN -> 0;
             case DEVOPS -> 1;
             case DEVELOPER -> 2;
-            case VIEWER -> 3;
         };
     }
 }

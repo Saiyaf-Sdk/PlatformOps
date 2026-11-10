@@ -199,7 +199,6 @@ public class DeploymentService {
     }
 
     private void checkCanDeployTo(AuthUser me, EnvironmentCode code) {
-        if (me.role() == Role.VIEWER) throw ApiException.forbidden("Viewers can't deploy");
         if (me.role() == Role.DEVELOPER && code == EnvironmentCode.PRODUCTION) {
             throw new ApiException(HttpStatus.FORBIDDEN, "forbidden", "Developers can deploy to Dev and Staging. Ask DevOps to promote to Production.");
         }

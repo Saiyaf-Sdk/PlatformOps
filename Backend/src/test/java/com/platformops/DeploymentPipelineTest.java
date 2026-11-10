@@ -114,14 +114,6 @@ class DeploymentPipelineTest extends ApiTestBase {
     }
 
     @Test
-    void viewersCannotDeploy() throws Exception {
-        String ops = tokenFor(Role.DEVOPS);
-        long app = createApp(ops, unique("view"));
-        postJson("/api/v1/deployments", tokenFor(Role.VIEWER), Map.of("applicationId", app, "environment", "DEV", "version", "v1.0.0"))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
     void buildFailureIsReportedWithoutIncident() throws Exception {
         String t = tokenFor(Role.DEVOPS);
         long app = createApp(t, unique("bf"));
