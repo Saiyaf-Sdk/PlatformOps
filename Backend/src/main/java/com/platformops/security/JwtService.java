@@ -1,7 +1,6 @@
 package com.platformops.security;
 
 import com.platformops.config.AppProperties;
-import com.platformops.user.Role;
 import com.platformops.user.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
