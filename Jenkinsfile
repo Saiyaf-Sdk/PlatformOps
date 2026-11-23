@@ -25,8 +25,8 @@ parameters {
     }
 
     environment {
-        FRONTEND_DIR = 'frontend'
-        BACKEND_DIR  = 'backend'
+        FRONTEND_DIR = 'Frontend'
+        BACKEND_DIR  = 'Backend'
     }
 
     stages {
@@ -137,7 +137,7 @@ parameters {
                 sh '''
                     docker build \
                     -t platformops-frontend:${SHORT_SHA} \
-                    ./frontend
+                    ./Frontend
                 '''
             }
         }
@@ -147,7 +147,7 @@ parameters {
                 sh '''
                     docker build \
                     -t platformops-backend:${SHORT_SHA} \
-                    ./backend
+                    ./Backend
                 '''
             }
         }
