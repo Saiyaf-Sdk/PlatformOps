@@ -25,6 +25,7 @@ parameters {
     }
 
     environment {
+JAVA_HOME = '/home/user/.local/platformops-jdk21'
         FRONTEND_DIR = 'Frontend'
         BACKEND_DIR  = 'Backend'
     }
